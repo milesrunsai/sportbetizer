@@ -14,10 +14,10 @@ const config = {
 
 export default function ModelIcon({ model, agrees = true, size = 'md' }: ModelIconProps) {
   const { label, color, name } = config[model];
-  const dim = size === 'sm' ? 28 : 36;
+  const dim = size === 'sm' ? 22 : 28;
 
   return (
-    <div className="flex flex-col items-center gap-1" title={name}>
+    <div className="flex flex-col items-center gap-0.5" title={name}>
       <div
         className="rounded-full flex items-center justify-center font-bold transition-all"
         style={{
@@ -26,14 +26,14 @@ export default function ModelIcon({ model, agrees = true, size = 'md' }: ModelIc
           backgroundColor: agrees ? color : 'transparent',
           border: `2px solid ${color}`,
           opacity: agrees ? 1 : 0.3,
-          fontSize: size === 'sm' ? 10 : 12,
-          color: agrees ? '#0f0f23' : color,
+          fontSize: size === 'sm' ? 9 : 11,
+          color: agrees ? '#fff' : color,
         }}
       >
         {label}
       </div>
       {size === 'md' && (
-        <span className="text-[10px] text-slate-500">{name}</span>
+        <span className="text-[10px] text-[#666]">{name}</span>
       )}
     </div>
   );

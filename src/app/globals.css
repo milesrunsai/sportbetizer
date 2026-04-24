@@ -1,39 +1,31 @@
 @import "tailwindcss";
 
-:root {
-  --bg-body: #0f0f23;
-  --bg-card: #1a1a2e;
-  --bg-card-alt: #252540;
-  --border: #2d2d50;
-  --gold: #E8A838;
-  --blue: #4A9EE8;
-  --red: #EF4444;
-  --purple: #A855F7;
-  --emerald: #10B981;
-}
-
 @theme inline {
-  --color-background: var(--bg-body);
-  --color-foreground: #e2e8f0;
-  --color-gold: #E8A838;
-  --color-gold-dim: #c48a2a;
-  --color-loss: #EF4444;
+  --color-background: #f5f5f5;
+  --color-foreground: #333333;
+  --color-sportsbet-blue: #003f7f;
+  --color-sportsbet-orange: #f47920;
+  --color-sportsbet-black: #1a1a1a;
+  --color-sportsbet-green: #00a651;
+  --color-sportsbet-red: #d32f2f;
+  --color-sportsbet-gold: #c8a415;
+  --color-sportsbet-link: #004a99;
+  --color-card-bg: #ffffff;
+  --color-card-border: #e5e5e5;
+  --color-text-primary: #333333;
+  --color-text-secondary: #666666;
   --color-claude: #A855F7;
   --color-gpt: #10B981;
   --color-gemini: #3B82F6;
-  --color-card: #1a1a2e;
-  --color-card-alt: #252540;
-  --color-border: #2d2d50;
-  --color-blue: #4A9EE8;
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
 }
 
 body {
-  background: #0f0f23;
-  color: #e2e8f0;
-  font-family: var(--font-sans, 'Inter', system-ui, sans-serif);
+  background: #f5f5f5;
+  color: #333333;
+  font-family: -apple-system, system-ui, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+  font-size: 14px;
   -webkit-font-smoothing: antialiased;
+  margin: 0;
 }
 
 ::-webkit-scrollbar {
@@ -44,7 +36,7 @@ body {
   background: transparent;
 }
 ::-webkit-scrollbar-thumb {
-  background: #2d2d50;
+  background: #ccc;
   border-radius: 3px;
 }
 
@@ -56,12 +48,12 @@ body {
   scrollbar-width: none;
 }
 
-.glow-gold {
-  box-shadow: 0 0 20px rgba(232, 168, 56, 0.15), 0 0 60px rgba(232, 168, 56, 0.05);
+@keyframes ticker-scroll {
+  0% { transform: translateX(0); }
+  100% { transform: translateX(-50%); }
 }
-
-.glow-text-gold {
-  text-shadow: 0 0 20px rgba(232, 168, 56, 0.5);
+.animate-ticker {
+  animation: ticker-scroll 30s linear infinite;
 }
 
 @keyframes pulse-dot {
@@ -70,4 +62,41 @@ body {
 }
 .animate-pulse-dot {
   animation: pulse-dot 2s ease-in-out infinite;
+}
+
+.odds-btn {
+  min-width: 56px;
+  text-align: center;
+  font-weight: 700;
+  font-size: 13px;
+  padding: 6px 10px;
+  border-radius: 6px;
+  background: #ffffff;
+  border: 1px solid #e5e5e5;
+  color: #333;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+.odds-btn:hover {
+  background: #f9f9f9;
+}
+.odds-btn.active {
+  background: #f47920;
+  color: #fff;
+  border-color: #f47920;
+}
+
+.cta-orange {
+  background: #f47920;
+  color: #fff;
+  font-weight: 700;
+  border-radius: 8px;
+  padding: 10px 24px;
+  border: none;
+  cursor: pointer;
+  transition: background 0.15s;
+  font-size: 14px;
+}
+.cta-orange:hover {
+  background: #e06810;
 }

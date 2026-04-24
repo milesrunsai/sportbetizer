@@ -1,75 +1,192 @@
 import type { Metadata } from "next";
-import { Geist, Geist_Mono } from "next/font/google";
 import Image from "next/image";
 import Link from "next/link";
 import "./globals.css";
-
-const geistSans = Geist({
-  variable: "--font-geist-sans",
-  subsets: ["latin"],
-});
-
-const geistMono = Geist_Mono({
-  variable: "--font-geist-mono",
-  subsets: ["latin"],
-});
 
 export const metadata: Metadata = {
   title: "MilesRunsAI Sportsbetalizer",
   description: "3 AI Models. 1 Daily Multi. Real Money.",
 };
 
+function TopTickerBar() {
+  const races = [
+    { type: 'horse', track: 'Flemington', race: 'R4', time: '4m 37s' },
+    { type: 'dog', track: 'Sandown', race: 'R7', time: '8m 12s' },
+    { type: 'harness', track: 'Menangle', race: 'R3', time: '12m 05s' },
+    { type: 'horse', track: 'Randwick', race: 'R6', time: '15m 44s' },
+    { type: 'dog', track: 'Wentworth Park', race: 'R2', time: '18m 30s' },
+    { type: 'horse', track: 'Caulfield', race: 'R5', time: '22m 11s' },
+    { type: 'harness', track: 'Albion Park', race: 'R1', time: '25m 58s' },
+    { type: 'dog', track: 'The Meadows', race: 'R8', time: '29m 03s' },
+    { type: 'horse', track: 'Eagle Farm', race: 'R3', time: '33m 47s' },
+    { type: 'harness', track: 'Gloucester Park', race: 'R6', time: '38m 22s' },
+  ];
+
+  const iconMap: Record<string, string> = {
+    horse: '\u{1F3C7}',
+    dog: '\u{1F415}',
+    harness: '\u{1F3CE}',
+  };
+
+  return (
+    <div className="bg-[#1a1a1a] text-white overflow-hidden" style={{ height: 32 }}>
+      <div className="flex items-center h-full">
+        <div className="shrink-0 px-3 text-[11px] font-bold text-[#f47920] uppercase tracking-wide border-r border-gray-700">
+          Next to Jump
+        </div>
+        <div className="overflow-hidden flex-1">
+          <div className="flex animate-ticker whitespace-nowrap">
+            {[...races, ...races].map((race, i) => (
+              <div key={i} className="flex items-center gap-1.5 px-4 text-[11px] shrink-0">
+                <span>{iconMap[race.type]}</span>
+                <span className="text-gray-300">{race.track}</span>
+                <span className="text-gray-500">{race.race}</span>
+                <span className="bg-[#333] text-[#f47920] px-1.5 py-0.5 rounded text-[10px] font-bold">
+                  {race.time}
+                </span>
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 function Header() {
   return (
-    <header className="border-b border-[#2d2d50] bg-[#0f0f23]/95 backdrop-blur-md sticky top-0 z-50">
-      <div className="max-w-6xl mx-auto px-4 h-14 flex items-center justify-between">
-        <Link href="/" className="flex items-center gap-2">
-          <Image src="/logo.jpg" alt="MilesRunsAI" width={160} height={32} className="h-8 w-auto" priority />
+    <header className="bg-[#003f7f] sticky top-0 z-50 shadow-md">
+      <div className="max-w-7xl mx-auto px-4 h-14 flex items-center justify-between">
+        <Link href="/" className="flex items-center gap-2 shrink-0">
+          <Image src="/logo.png" alt="MilesRunsAI" width={140} height={32} className="h-8 w-auto" priority />
         </Link>
-        <nav className="flex items-center gap-1 text-sm">
-          <Link
-            href="/"
-            className="px-3 py-1.5 rounded-lg text-slate-400 hover:text-white hover:bg-[#1a1a2e] transition-colors"
-          >
-            Today&apos;s Multi
-          </Link>
+
+        <div className="hidden sm:flex flex-1 max-w-md mx-6">
+          <div className="relative w-full">
+            <input
+              type="text"
+              placeholder="Search events, races, sports..."
+              className="w-full bg-white/15 text-white placeholder-white/50 text-[13px] rounded-md px-4 py-2 outline-none border border-white/20 focus:border-white/40"
+              readOnly
+            />
+            <svg className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-white/50" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+            </svg>
+          </div>
+        </div>
+
+        <div className="flex items-center gap-3">
+          <nav className="hidden md:flex items-center gap-1 text-[13px]">
+            <Link href="/" className="px-3 py-1.5 rounded text-white/80 hover:text-white hover:bg-white/10 transition-colors">
+              Today
+            </Link>
+            <Link href="/analysis" className="px-3 py-1.5 rounded text-white/80 hover:text-white hover:bg-white/10 transition-colors">
+              AI Picks
+            </Link>
+            <Link href="/results" className="px-3 py-1.5 rounded text-white/80 hover:text-white hover:bg-white/10 transition-colors">
+              Track Record
+            </Link>
+            <Link href="/how-it-works" className="px-3 py-1.5 rounded text-white/80 hover:text-white hover:bg-white/10 transition-colors">
+              How It Works
+            </Link>
+          </nav>
           <Link
             href="/analysis"
-            className="px-3 py-1.5 rounded-lg text-slate-400 hover:text-white hover:bg-[#1a1a2e] transition-colors"
+            className="bg-[#f47920] hover:bg-[#e06810] text-white text-[13px] font-bold px-4 py-2 rounded-lg transition-colors flex items-center gap-1.5"
           >
-            Analysis
+            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
+            </svg>
+            AI Multi
           </Link>
-          <Link
-            href="/results"
-            className="px-3 py-1.5 rounded-lg text-slate-400 hover:text-white hover:bg-[#1a1a2e] transition-colors"
-          >
-            Track Record
-          </Link>
-          <Link
-            href="/how-it-works"
-            className="hidden sm:block px-3 py-1.5 rounded-lg text-slate-400 hover:text-white hover:bg-[#1a1a2e] transition-colors"
-          >
-            How It Works
-          </Link>
-        </nav>
+        </div>
       </div>
     </header>
   );
 }
 
+function CategoryBar() {
+  const categories = [
+    { label: 'Horses', icon: '\u{1F3C7}', href: '/' },
+    { label: 'Greyhounds', icon: '\u{1F415}', href: '/' },
+    { label: 'Harness', icon: '\u{1F3CE}', href: '/' },
+    { label: 'AI Picks', icon: '\u{1F916}', href: '/analysis' },
+    { label: 'Track Record', icon: '\u{1F4CA}', href: '/results' },
+    { label: 'How It Works', icon: '\u{2699}', href: '/how-it-works' },
+  ];
+
+  return (
+    <div className="bg-white border-b border-[#e5e5e5]">
+      <div className="max-w-7xl mx-auto px-4">
+        <div className="flex gap-0 overflow-x-auto scrollbar-none">
+          {categories.map((cat) => (
+            <Link
+              key={cat.label}
+              href={cat.href}
+              className="flex flex-col items-center gap-1 px-5 py-2.5 text-[12px] text-[#666] hover:text-[#333] border-b-2 border-transparent hover:border-[#f47920] transition-colors whitespace-nowrap shrink-0"
+            >
+              <span className="text-lg">{cat.icon}</span>
+              <span>{cat.label}</span>
+            </Link>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+}
+
 function Footer() {
   return (
-    <footer className="border-t border-[#2d2d50] mt-auto">
-      <div className="max-w-6xl mx-auto px-4 py-6 text-center text-sm text-slate-600">
-        Built by{' '}
-        <a
-          href="https://x.com/milesdoesai"
-          target="_blank"
-          rel="noopener noreferrer"
-          className="text-[#4A9EE8] hover:text-[#4A9EE8]/80 transition-colors"
-        >
-          @milesdoesai
-        </a>
+    <footer className="bg-[#1a1a1a] text-gray-400 mt-auto">
+      <div className="max-w-7xl mx-auto px-4 py-8">
+        <div className="grid sm:grid-cols-3 gap-8 mb-8">
+          <div>
+            <h4 className="text-white font-bold text-sm mb-3">Navigation</h4>
+            <div className="space-y-2 text-[13px]">
+              <Link href="/" className="block hover:text-white transition-colors">Home</Link>
+              <Link href="/analysis" className="block hover:text-white transition-colors">AI Picks</Link>
+              <Link href="/results" className="block hover:text-white transition-colors">Track Record</Link>
+              <Link href="/how-it-works" className="block hover:text-white transition-colors">How It Works</Link>
+            </div>
+          </div>
+          <div>
+            <h4 className="text-white font-bold text-sm mb-3">Powered By</h4>
+            <div className="space-y-2 text-[13px]">
+              <div className="flex items-center gap-2">
+                <span className="w-2 h-2 rounded-full bg-[#A855F7]"></span>
+                Claude (Anthropic)
+              </div>
+              <div className="flex items-center gap-2">
+                <span className="w-2 h-2 rounded-full bg-[#10B981]"></span>
+                GPT (OpenAI)
+              </div>
+              <div className="flex items-center gap-2">
+                <span className="w-2 h-2 rounded-full bg-[#3B82F6]"></span>
+                Gemini (Google)
+              </div>
+            </div>
+          </div>
+          <div>
+            <h4 className="text-white font-bold text-sm mb-3">Disclaimer</h4>
+            <p className="text-[11px] text-gray-500 leading-relaxed">
+              This is a content experiment. Gambling involves risk. Past results don&apos;t guarantee future performance. Never bet more than you can afford to lose. If you or someone you know has a gambling problem, call 1800 858 858.
+            </p>
+          </div>
+        </div>
+        <div className="border-t border-gray-800 pt-4 flex items-center justify-between text-[12px]">
+          <span>
+            Built by{' '}
+            <a
+              href="https://x.com/milesdoesai"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-[#f47920] hover:text-[#e06810] transition-colors"
+            >
+              @milesdoesai
+            </a>
+          </span>
+          <span className="text-gray-600">Powered by Claude, GPT &amp; Gemini</span>
+        </div>
       </div>
     </footer>
   );
@@ -81,12 +198,11 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html
-      lang="en"
-      className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
-    >
+    <html lang="en" className="h-full">
       <body className="min-h-full flex flex-col">
+        <TopTickerBar />
         <Header />
+        <CategoryBar />
         <main className="flex-1">{children}</main>
         <Footer />
       </body>

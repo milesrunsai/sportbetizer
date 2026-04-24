@@ -1,7 +1,5 @@
 'use client';
 
-import type { Sport } from '@/lib/types';
-
 interface SportFilterProps {
   selected: string;
   onChange: (sport: string) => void;
@@ -29,10 +27,10 @@ export default function SportFilter({ selected, onChange, sports }: SportFilterP
         <button
           key={sport}
           onClick={() => onChange(sport)}
-          className={`px-4 py-1.5 rounded-full text-xs font-semibold whitespace-nowrap transition-all ${
+          className={`px-4 py-1.5 rounded-md text-[12px] font-semibold whitespace-nowrap transition-all border ${
             selected === sport
-              ? 'bg-[#4A9EE8] text-[#0f0f23]'
-              : 'bg-[#1a1a2e] text-slate-400 hover:bg-[#252540] hover:text-slate-300 border border-[#2d2d50]'
+              ? 'bg-[#f47920] text-white border-[#f47920]'
+              : 'bg-white text-[#666] hover:bg-[#f9f9f9] hover:text-[#333] border-[#e5e5e5]'
           }`}
         >
           {sportLabels[sport] || sport}

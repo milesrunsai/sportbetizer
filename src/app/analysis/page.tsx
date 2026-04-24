@@ -28,17 +28,30 @@ export default function AnalysisPage() {
       : analyzed.filter((a) => a.event.sport === selectedSport);
 
   const consensusCount = filtered.filter((a) => a.consensus === 'AGREE').length;
+  const highConfCount = filtered.filter((a) => a.confidenceLevel === 'high').length;
 
   return (
-    <div className="max-w-6xl mx-auto px-4 py-8">
-      <div className="mb-6">
-        <h1 className="text-2xl font-bold text-white mb-1">Today&apos;s Analysis</h1>
-        <p className="text-sm text-slate-500">
-          {analyzed.length} events analyzed / {consensusCount} consensus picks
-        </p>
+    <div className="max-w-7xl mx-auto px-4 py-6">
+      <div className="flex items-center justify-between mb-4">
+        <div>
+          <h1 className="text-[20px] font-bold text-[#333]">AI Picks &amp; Analysis</h1>
+          <p className="text-[12px] text-[#666] mt-0.5">
+            {analyzed.length} events analyzed &middot; {consensusCount} consensus picks &middot; {highConfCount} high confidence
+          </p>
+        </div>
+        <div className="hidden sm:flex items-center gap-3 text-[11px] text-[#666]">
+          <span className="flex items-center gap-1">
+            <span className="w-2 h-2 rounded-full bg-[#00a651]"></span>
+            Consensus
+          </span>
+          <span className="flex items-center gap-1">
+            <span className="w-2 h-2 rounded-full bg-[#c8a415]"></span>
+            High Conf
+          </span>
+        </div>
       </div>
 
-      <div className="mb-6">
+      <div className="mb-4">
         <SportFilter
           selected={selectedSport}
           onChange={setSelectedSport}
@@ -51,7 +64,7 @@ export default function AnalysisPage() {
           {Array.from({ length: 6 }).map((_, i) => (
             <div
               key={i}
-              className="bg-[#1a1a2e] border border-[#2d2d50] rounded-xl h-48 animate-pulse"
+              className="bg-white border border-[#e5e5e5] rounded-lg h-48 animate-pulse"
             />
           ))}
         </div>
@@ -64,7 +77,7 @@ export default function AnalysisPage() {
       )}
 
       {!loading && filtered.length === 0 && (
-        <div className="text-center py-12 text-slate-600">
+        <div className="text-center py-12 text-[#999] text-[13px]">
           No events found for this sport today.
         </div>
       )}

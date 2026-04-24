@@ -25,21 +25,20 @@ export default function BankrollChart({ history, height = 200 }: BankrollChartPr
   });
 
   const linePath = points.map((p, i) => `${i === 0 ? 'M' : 'L'} ${p.x} ${p.y}`).join(' ');
-
   const areaPath = `${linePath} L ${points[points.length - 1].x} ${padding.top + chartH} L ${points[0].x} ${padding.top + chartH} Z`;
 
   const startBalance = history[0].balance;
   const endBalance = history[history.length - 1].balance;
   const isProfit = endBalance >= startBalance;
-  const strokeColor = isProfit ? '#E8A838' : '#EF4444';
-  const fillColor = isProfit ? 'rgba(232, 168, 56, 0.1)' : 'rgba(239, 68, 68, 0.1)';
+  const strokeColor = isProfit ? '#00a651' : '#d32f2f';
+  const fillColor = isProfit ? 'rgba(0, 166, 81, 0.08)' : 'rgba(211, 47, 47, 0.08)';
 
   const gridLines = 4;
   const gridValues = Array.from({ length: gridLines }, (_, i) => min + (range * i) / (gridLines - 1));
 
   return (
     <div className="w-full overflow-x-auto">
-      <svg viewBox={`0 0 ${width} ${height}`} className="w-full" style={{ minWidth: 300 }}>
+      <svg viewBox={`0 0 ${width} ${height}`} className="w-full" style={{ minWidth: 280 }}>
         {gridValues.map((val) => {
           const y = padding.top + chartH - ((val - min) / range) * chartH;
           return (
@@ -49,10 +48,10 @@ export default function BankrollChart({ history, height = 200 }: BankrollChartPr
                 y1={y}
                 x2={width - padding.right}
                 y2={y}
-                stroke="#2d2d50"
+                stroke="#e5e5e5"
                 strokeDasharray="4 4"
               />
-              <text x={padding.left - 8} y={y + 4} textAnchor="end" fill="#64748b" fontSize={10}>
+              <text x={padding.left - 8} y={y + 4} textAnchor="end" fill="#999" fontSize={10}>
                 ${val.toFixed(0)}
               </text>
             </g>
@@ -60,14 +59,14 @@ export default function BankrollChart({ history, height = 200 }: BankrollChartPr
         })}
 
         <path d={areaPath} fill={fillColor} />
-        <path d={linePath} fill="none" stroke={strokeColor} strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round" />
+        <path d={linePath} fill="none" stroke={strokeColor} strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" />
 
         {points.map((p, i) => (
-          <circle key={i} cx={p.x} cy={p.y} r={3.5} fill={strokeColor} stroke="#0f0f23" strokeWidth={2} />
+          <circle key={i} cx={p.x} cy={p.y} r={3} fill={strokeColor} stroke="#fff" strokeWidth={2} />
         ))}
 
         {points.filter((_, i) => i === 0 || i === points.length - 1 || i % 2 === 0).map((p) => (
-          <text key={p.date} x={p.x} y={height - 5} textAnchor="middle" fill="#64748b" fontSize={9}>
+          <text key={p.date} x={p.x} y={height - 5} textAnchor="middle" fill="#999" fontSize={9}>
             {new Date(p.date).toLocaleDateString('en-AU', { day: 'numeric', month: 'short' })}
           </text>
         ))}
@@ -77,10 +76,10 @@ export default function BankrollChart({ history, height = 200 }: BankrollChartPr
           y1={padding.top + chartH - ((startBalance - min) / range) * chartH}
           x2={width - padding.right}
           y2={padding.top + chartH - ((startBalance - min) / range) * chartH}
-          stroke="#4A9EE8"
+          stroke="#004a99"
           strokeDasharray="6 3"
           strokeWidth={1}
-          opacity={0.5}
+          opacity={0.4}
         />
       </svg>
     </div>

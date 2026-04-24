@@ -1,5 +1,4 @@
 import { getBankroll, getResults } from '@/lib/data';
-import type { ResultEntry } from '@/lib/types';
 import LandingClient from './LandingClient';
 
 export const dynamic = 'force-dynamic';

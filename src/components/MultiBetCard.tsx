@@ -29,23 +29,23 @@ export default function MultiBetCard({ date, legs, combinedOdds, recommendedStak
   const potentialReturn = combinedOdds * recommendedStake;
 
   return (
-    <div className="bg-[#1a1a2e] border border-[#2d2d50] rounded-xl overflow-hidden">
+    <div className="bg-white border border-[#e5e5e5] rounded-lg shadow-sm overflow-hidden">
       {/* Header */}
-      <div className="bg-[#252540] px-4 py-3 flex items-center justify-between border-b border-[#2d2d50]">
+      <div className="bg-[#003f7f] px-4 py-3 flex items-center justify-between">
         <div>
-          <div className="text-[10px] text-slate-500 uppercase tracking-wider">Daily Multi</div>
-          <div className="text-sm text-slate-300 font-medium">
+          <div className="text-[10px] text-white/60 uppercase tracking-wider">Daily Multi</div>
+          <div className="text-[13px] text-white font-medium">
             {new Date(date).toLocaleDateString('en-AU', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })}
           </div>
         </div>
         {result && (
           <span
-            className={`text-xs font-bold px-3 py-1 rounded-full ${
+            className={`text-[11px] font-bold px-3 py-1 rounded-full ${
               result === 'won'
-                ? 'bg-[#E8A838]/20 text-[#E8A838] border border-[#E8A838]/30'
+                ? 'bg-[#00a651] text-white'
                 : result === 'lost'
-                  ? 'bg-red-500/20 text-red-400 border border-red-500/30'
-                  : 'bg-[#4A9EE8]/20 text-[#4A9EE8] border border-[#4A9EE8]/30'
+                  ? 'bg-[#d32f2f] text-white'
+                  : 'bg-white/20 text-white'
             }`}
           >
             {result === 'pending' ? 'PENDING' : result.toUpperCase()}
@@ -54,46 +54,46 @@ export default function MultiBetCard({ date, legs, combinedOdds, recommendedStak
       </div>
 
       {/* Legs */}
-      <div className="divide-y divide-[#2d2d50]/50">
+      <div className="divide-y divide-[#f0f0f0]">
         {legs.map((leg, i) => (
-          <div key={i} className="px-4 py-3 flex items-center gap-3">
+          <div key={i} className="px-4 py-2.5 flex items-center gap-3">
             <div className="shrink-0">
-              <span className="text-[10px] font-bold text-slate-500 bg-[#252540] px-2 py-1 rounded border border-[#2d2d50]">
+              <span className="text-[10px] font-bold text-[#666] bg-[#f5f5f5] px-2 py-1 rounded border border-[#e5e5e5]">
                 {sportTag(leg.event.sport)}
               </span>
             </div>
             <div className="flex-1 min-w-0">
-              <div className="text-sm font-medium text-slate-200 truncate">{leg.event.event}</div>
-              <div className="text-xs text-[#4A9EE8] font-semibold mt-0.5">{leg.pick}</div>
+              <div className="text-[13px] font-medium text-[#333] truncate">{leg.event.event}</div>
+              <div className="text-[12px] text-[#004a99] font-semibold mt-0.5">{leg.pick}</div>
             </div>
-            <div className="shrink-0 text-right">
-              <div className="text-sm font-bold text-[#E8A838]">{leg.odds.toFixed(2)}</div>
+            <div className="shrink-0 flex items-center gap-2">
               <ConsensusBar
                 claudeAgrees={leg.claudeAgrees}
                 gptAgrees={leg.gptAgrees}
                 geminiAgrees={leg.geminiAgrees}
                 size="sm"
               />
+              <span className="odds-btn">{leg.odds.toFixed(2)}</span>
             </div>
           </div>
         ))}
       </div>
 
       {/* Footer */}
-      <div className="bg-[#252540]/50 px-4 py-3 border-t border-[#2d2d50]">
+      <div className="bg-[#f9f9f9] px-4 py-3 border-t border-[#e5e5e5]">
         <div className="grid grid-cols-3 gap-4 text-center">
           <div>
-            <div className="text-[10px] text-slate-500 uppercase tracking-wider">Combined Odds</div>
-            <div className="text-lg font-bold text-[#E8A838]">{combinedOdds.toFixed(2)}</div>
+            <div className="text-[10px] text-[#999] uppercase tracking-wider">Combined Odds</div>
+            <div className="text-[18px] font-black text-[#f47920]">{combinedOdds.toFixed(2)}</div>
           </div>
           <div>
-            <div className="text-[10px] text-slate-500 uppercase tracking-wider">Stake</div>
-            <div className="text-lg font-bold text-white">${recommendedStake.toFixed(2)}</div>
-            <div className="text-[10px] text-slate-600">{((recommendedStake / bankroll) * 100).toFixed(0)}% of bankroll</div>
+            <div className="text-[10px] text-[#999] uppercase tracking-wider">Stake</div>
+            <div className="text-[18px] font-black text-[#333]">${recommendedStake.toFixed(2)}</div>
+            <div className="text-[10px] text-[#999]">{((recommendedStake / bankroll) * 100).toFixed(0)}% of bankroll</div>
           </div>
           <div>
-            <div className="text-[10px] text-slate-500 uppercase tracking-wider">Potential Return</div>
-            <div className="text-lg font-bold text-[#E8A838]">${potentialReturn.toFixed(2)}</div>
+            <div className="text-[10px] text-[#999] uppercase tracking-wider">Potential Return</div>
+            <div className="text-[18px] font-black text-[#00a651]">${potentialReturn.toFixed(2)}</div>
           </div>
         </div>
       </div>
