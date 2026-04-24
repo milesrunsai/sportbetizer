@@ -1,8 +1,45 @@
 'use client';
 
-import { useState, useMemo } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import ModelIcon from '@/components/ModelIcon';
 import type { SportEvent, AnalyzedEvent } from '@/lib/types';
+
+function formatCountdown(ms: number): string {
+  if (ms <= 0) return 'LIVE';
+  const totalSec = Math.floor(ms / 1000);
+  const mins = Math.floor(totalSec / 60);
+  const secs = totalSec % 60;
+  if (mins >= 60) {
+    const hrs = Math.floor(mins / 60);
+    const remainMins = mins % 60;
+    return `${hrs}h ${remainMins.toString().padStart(2, '0')}m`;
+  }
+  return `${mins}m ${secs.toString().padStart(2, '0')}s`;
+}
+
+function CountdownPill({ startTime, now }: { startTime: string; now: number }) {
+  const diff = new Date(startTime).getTime() - now;
+  const isLive = diff <= 0;
+  const text = formatCountdown(diff);
+  return (
+    <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded ${
+      isLive ? 'bg-red-600 text-white animate-pulse' : 'bg-[#1a1a1a] text-[#f47920]'
+    }`}>
+      {text}
+    </span>
+  );
+}
+
+interface SrmPick {
+  name: string;
+  reasoning: string;
+}
+
+interface SrmSuggestion {
+  picks: SrmPick[];
+  confidence: number;
+  summary: string;
+}
 
 interface Runner {
   name: string;
@@ -29,6 +66,14 @@ export default function AiPicksClient({ events, analyzed }: AiPicksClientProps) 
   const [dailyMultiSelections, setDailyMultiSelections] = useState<Record<string, string>>({});
   const [analyzing, setAnalyzing] = useState(false);
   const [liveAnalyzed, setLiveAnalyzed] = useState<AnalyzedEvent[]>(analyzed);
+  const [now, setNow] = useState(Date.now());
+  const [srmSuggestions, setSrmSuggestions] = useState<Record<string, SrmSuggestion>>({});
+  const [srmLoading, setSrmLoading] = useState<Record<string, boolean>>({});
+
+  useEffect(() => {
+    const interval = setInterval(() => setNow(Date.now()), 1000);
+    return () => clearInterval(interval);
+  }, []);
 
   // Map analyzed events by event id for quick lookup
   const analysisMap = useMemo(() => {
@@ -118,6 +163,27 @@ export default function AiPicksClient({ events, analyzed }: AiPicksClientProps) 
     setAnalyzing(false);
   }
 
+  async function fetchSrm(event: SportEvent) {
+    setSrmLoading(prev => ({ ...prev, [event.id]: true }));
+    try {
+      const res = await fetch('/api/srm', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ event }),
+      });
+      const data = await res.json();
+      if (data.suggestion) {
+        setSrmSuggestions(prev => ({ ...prev, [event.id]: data.suggestion }));
+        // Auto-select SRM picks
+        const names = data.suggestion.picks.map((p: SrmPick) => p.name);
+        setSameRaceSelections(prev => ({ ...prev, [event.id]: names }));
+      }
+    } catch {
+      // ignore
+    }
+    setSrmLoading(prev => ({ ...prev, [event.id]: false }));
+  }
+
   const hasAnalysis = liveAnalyzed.length > 0;
   const consensusCount = liveAnalyzed.filter(a => a.consensus === 'AGREE').length;
   const highConfCount = liveAnalyzed.filter(a => a.confidenceLevel === 'high').length;
@@ -178,8 +244,9 @@ export default function AiPicksClient({ events, analyzed }: AiPicksClientProps) 
                       <div className="font-bold text-sm mt-0.5">{event.event}</div>
                     </div>
                     <div className="text-right">
-                      <div className="text-xs text-white/60">
+                      <div className="flex items-center gap-2 justify-end text-xs text-white/60">
                         {new Date(event.startTime).toLocaleTimeString('en-AU', { hour: '2-digit', minute: '2-digit' })}
+                        <CountdownPill startTime={event.startTime} now={now} />
                       </div>
                       {analysis && (
                         <span className={`inline-block mt-1 text-[10px] font-bold px-2 py-0.5 rounded ${
@@ -294,6 +361,46 @@ export default function AiPicksClient({ events, analyzed }: AiPicksClientProps) 
                       );
                     })}
                   </div>
+
+                  {/* AI SRM Suggestion */}
+                  {analysis && !srmSuggestions[event.id] && (
+                    <div className="bg-[#f8fafc] border-t border-[#e5e5e5] px-4 py-3 flex items-center justify-between">
+                      <div>
+                        <div className="text-[11px] font-bold text-[#333]">AI Same Race Multi</div>
+                        <div className="text-[10px] text-[#666]">Get AI-suggested SRM picks for this race</div>
+                      </div>
+                      <button
+                        onClick={() => fetchSrm(event)}
+                        disabled={srmLoading[event.id]}
+                        className="bg-[#f47920] hover:bg-[#e06810] disabled:opacity-50 text-white font-bold px-4 py-2 rounded text-[11px] transition-colors"
+                      >
+                        {srmLoading[event.id] ? 'Generating...' : 'Get AI SRM'}
+                      </button>
+                    </div>
+                  )}
+
+                  {srmSuggestions[event.id] && (
+                    <div className="bg-gradient-to-r from-[#f47920]/10 to-[#f47920]/5 border-t border-[#f47920]/20 px-4 py-3">
+                      <div className="flex items-center gap-2 mb-2">
+                        <span className="text-[10px] font-bold text-[#f47920] uppercase tracking-wider">AI Same Race Multi</span>
+                        <span className="text-[10px] font-bold bg-[#f47920] text-white px-1.5 py-0.5 rounded">
+                          {srmSuggestions[event.id].confidence}/10
+                        </span>
+                      </div>
+                      <div className="space-y-1.5 mb-2">
+                        {srmSuggestions[event.id].picks.map((p, i) => (
+                          <div key={i} className="flex items-start gap-2">
+                            <span className="text-[10px] font-bold text-[#f47920] mt-0.5">{i + 1}.</span>
+                            <div>
+                              <span className="text-[12px] font-bold text-[#333]">{p.name}</span>
+                              <span className="text-[10px] text-[#666] ml-2">{p.reasoning}</span>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                      <p className="text-[10px] text-[#666] italic">{srmSuggestions[event.id].summary}</p>
+                    </div>
+                  )}
 
                   {/* Same Race Multi Footer */}
                   {srSelections.length >= 2 && (
