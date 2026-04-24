@@ -68,7 +68,7 @@ export default function LandingClient({ bankroll, results }: LandingClientProps)
 
   useEffect(() => {
     // Load races first (fast), then multi+analyze in background
-    fetch('/api/races').then(r => r.json()).then(scrapeData => {
+    fetch('/api/scrape').then(r => r.json()).then(scrapeData => {
         const events = scrapeData.events || [];
         const horses: NextRace[] = [];
         const dogs: NextRace[] = [];
