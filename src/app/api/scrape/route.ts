@@ -1,20 +1,182 @@
-import { NextResponse } from 'next/server';
+import { promises as fs } from 'fs';
+import path from 'path';
 import type { SportEvent } from '@/lib/types';
 
-// TODO: Replace this mock with real Sportsbet scraping using Playwright/Puppeteer
-// Real implementation would:
-// 1. Launch headless browser with Playwright
-// 2. Navigate to sportsbet.com.au
-// 3. Scrape odds for each sport category
-// 4. Parse the DOM to extract event data
-// 5. Return structured data
-//
-// Example:
-// import { chromium } from 'playwright';
-// const browser = await chromium.launch({ headless: true });
-// const page = await browser.newPage();
-// await page.goto('https://www.sportsbet.com.au/betting/australian-rules');
-// const events = await page.$$eval('.market-coupon', elements => ...);
+export const dynamic = 'force-dynamic';
+
+const SPORTSBET_HEADERS = {
+  'User-Agent':
+    'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36',
+  Accept: 'application/json',
+  Referer: 'https://www.sportsbet.com.au/',
+  'Accept-Language': 'en-AU,en;q=0.9',
+};
+
+const RACES_FILE = path.join(process.cwd(), 'data', 'today-races.json');
+
+interface SportsbetRunner {
+  runnerName?: string;
+  runnerNumber?: number;
+  jockeyName?: string;
+  trainerName?: string;
+  barrierNumber?: number;
+  handicapWeight?: number;
+  formComment?: string;
+  fixedOdds?: { returnWin?: number };
+  parimutuelOdds?: { returnWin?: number };
+}
+
+interface SportsbetRace {
+  raceName?: string;
+  raceNumber?: number;
+  meetingName?: string;
+  venueName?: string;
+  meetingDate?: string;
+  raceStartTime?: string;
+  advertisedStartTime?: string;
+  runners?: SportsbetRunner[];
+  raceType?: string;
+  distance?: number;
+  raceClassConditions?: string;
+}
+
+interface NextToJumpEntry {
+  race?: SportsbetRace;
+  meeting?: { meetingName?: string; venueName?: string; location?: string };
+}
+
+function parseRace(
+  raw: SportsbetRace | NextToJumpEntry,
+  type: 'Horse Racing' | 'Greyhounds' | 'Harness',
+  index: number
+): SportEvent | null {
+  // Handle both nested (NextToJump) and flat (Schedule) shapes
+  const race: SportsbetRace =
+    'race' in raw && raw.race ? raw.race : (raw as SportsbetRace);
+  const meeting = 'meeting' in raw ? raw.meeting : null;
+
+  const runners = race.runners;
+  if (!runners || runners.length === 0) return null;
+
+  const trackName =
+    race.meetingName ||
+    race.venueName ||
+    meeting?.meetingName ||
+    meeting?.venueName ||
+    'Unknown';
+  const raceNum = race.raceNumber || index + 1;
+  const raceName = race.raceName || `Race ${raceNum}`;
+  const distance = race.distance ? ` ${race.distance}m` : '';
+  const conditions = race.raceClassConditions
+    ? ` - ${race.raceClassConditions}`
+    : '';
+
+  const startTime =
+    race.raceStartTime ||
+    race.advertisedStartTime ||
+    new Date().toISOString();
+
+  const teams: string[] = [];
+  const odds: Record<string, number> = {};
+  const runnersDetail: Array<{
+    name: string;
+    number: number;
+    jockey: string;
+    trainer: string;
+    barrier: number;
+    weight: number;
+    form: string;
+    winOdds: number;
+  }> = [];
+
+  for (const r of runners) {
+    const name = r.runnerName || 'Unknown';
+    const winOdds = r.fixedOdds?.returnWin || r.parimutuelOdds?.returnWin || 0;
+    if (winOdds <= 0) continue; // scratched or no odds
+
+    teams.push(name);
+    odds[name] = winOdds;
+    runnersDetail.push({
+      name,
+      number: r.runnerNumber || 0,
+      jockey: r.jockeyName || '',
+      trainer: r.trainerName || '',
+      barrier: r.barrierNumber || 0,
+      weight: r.handicapWeight || 0,
+      form: r.formComment || '',
+      winOdds,
+    });
+  }
+
+  if (teams.length < 2) return null;
+
+  return {
+    id: `${type.toLowerCase().replace(/\s/g, '-')}-${trackName.toLowerCase().replace(/\s/g, '-')}-r${raceNum}`,
+    sport: type === 'Harness' ? 'Horse Racing' : type,
+    event: `Race ${raceNum} ${trackName}${conditions}${distance}`,
+    teams,
+    odds,
+    startTime,
+    venue: `${trackName}${meeting?.location ? `, ${meeting.location}` : ''}`,
+    // Extra racing detail stored in the event for AI analysis
+    ...(runnersDetail.length > 0 ? { runners: runnersDetail } : {}),
+  } as SportEvent;
+}
+
+async function fetchNextToJump(
+  type: 'Horse' | 'Greyhound' | 'Harness',
+  maxRaces: number
+): Promise<SportEvent[]> {
+  const url = `https://www.sportsbet.com.au/apigw/sportsbook-racing/Sportsbook/Racing/NextToJump/${type}?maxRaces=${maxRaces}`;
+  const res = await fetch(url, { headers: SPORTSBET_HEADERS, cache: 'no-store' });
+  if (!res.ok) throw new Error(`NextToJump/${type} returned ${res.status}`);
+  const data = await res.json();
+
+  const sportType =
+    type === 'Horse'
+      ? 'Horse Racing'
+      : type === 'Greyhound'
+        ? 'Greyhounds'
+        : 'Harness';
+
+  // Response may be an array directly or nested under a key
+  const entries: unknown[] = Array.isArray(data) ? data : data.races || data.events || [];
+  const events: SportEvent[] = [];
+
+  for (let i = 0; i < entries.length; i++) {
+    const parsed = parseRace(
+      entries[i] as SportsbetRace | NextToJumpEntry,
+      sportType as 'Horse Racing' | 'Greyhounds' | 'Harness',
+      i
+    );
+    if (parsed) events.push(parsed);
+  }
+
+  return events;
+}
+
+async function fetchSchedule(): Promise<SportEvent[]> {
+  const url =
+    'https://www.sportsbet.com.au/apigw/sportsbook-racing/Sportsbook/Racing/Schedule/Horse/Today';
+  const res = await fetch(url, { headers: SPORTSBET_HEADERS, cache: 'no-store' });
+  if (!res.ok) throw new Error(`Schedule returned ${res.status}`);
+  const data = await res.json();
+
+  const meetings: unknown[] = Array.isArray(data)
+    ? data
+    : data.meetings || data.races || [];
+
+  const events: SportEvent[] = [];
+  for (const meeting of meetings) {
+    const m = meeting as { races?: SportsbetRace[]; meetingName?: string };
+    const races = m.races || [];
+    for (let i = 0; i < races.length; i++) {
+      const parsed = parseRace(races[i], 'Horse Racing', i);
+      if (parsed) events.push(parsed);
+    }
+  }
+  return events;
+}
 
 function getMockEvents(): SportEvent[] {
   const today = new Date();
@@ -28,125 +190,12 @@ function getMockEvents(): SportEvent[] {
   };
 
   return [
-    // AFL
-    {
-      id: 'afl-001',
-      sport: 'AFL',
-      event: 'Sydney Swans vs Collingwood Magpies',
-      teams: ['Sydney Swans', 'Collingwood Magpies'],
-      odds: { 'Sydney Swans': 1.85, 'Collingwood Magpies': 1.95 },
-      startTime: fmt(today, 19, 25),
-      venue: 'SCG, Sydney',
-    },
-    {
-      id: 'afl-002',
-      sport: 'AFL',
-      event: 'Geelong Cats vs Melbourne Demons',
-      teams: ['Geelong Cats', 'Melbourne Demons'],
-      odds: { 'Geelong Cats': 1.72, 'Melbourne Demons': 2.15 },
-      startTime: fmt(today, 19, 50),
-      venue: 'GMHBA Stadium, Geelong',
-    },
-    {
-      id: 'afl-003',
-      sport: 'AFL',
-      event: 'Brisbane Lions vs Carlton Blues',
-      teams: ['Brisbane Lions', 'Carlton Blues'],
-      odds: { 'Brisbane Lions': 1.65, 'Carlton Blues': 2.25 },
-      startTime: fmt(tomorrow, 16, 35),
-      venue: 'The Gabba, Brisbane',
-    },
-    {
-      id: 'afl-004',
-      sport: 'AFL',
-      event: 'Fremantle Dockers vs West Coast Eagles',
-      teams: ['Fremantle Dockers', 'West Coast Eagles'],
-      odds: { 'Fremantle Dockers': 1.38, 'West Coast Eagles': 3.05 },
-      startTime: fmt(tomorrow, 18, 10),
-      venue: 'Optus Stadium, Perth',
-    },
-    // NRL
-    {
-      id: 'nrl-001',
-      sport: 'NRL',
-      event: 'Penrith Panthers vs Melbourne Storm',
-      teams: ['Penrith Panthers', 'Melbourne Storm'],
-      odds: { 'Penrith Panthers': 1.75, 'Melbourne Storm': 2.10 },
-      startTime: fmt(today, 20, 5),
-      venue: 'BlueBet Stadium, Penrith',
-    },
-    {
-      id: 'nrl-002',
-      sport: 'NRL',
-      event: 'South Sydney Rabbitohs vs Canterbury Bulldogs',
-      teams: ['South Sydney Rabbitohs', 'Canterbury Bulldogs'],
-      odds: { 'South Sydney Rabbitohs': 2.45, 'Canterbury Bulldogs': 1.55 },
-      startTime: fmt(today, 16, 0),
-      venue: 'Accor Stadium, Sydney',
-    },
-    {
-      id: 'nrl-003',
-      sport: 'NRL',
-      event: 'North Queensland Cowboys vs Cronulla Sharks',
-      teams: ['North Queensland Cowboys', 'Cronulla Sharks'],
-      odds: { 'North Queensland Cowboys': 1.90, 'Cronulla Sharks': 1.92 },
-      startTime: fmt(tomorrow, 18, 0),
-      venue: 'Queensland Country Bank Stadium, Townsville',
-    },
-    // NBA
-    {
-      id: 'nba-001',
-      sport: 'NBA',
-      event: 'LA Lakers vs Boston Celtics',
-      teams: ['LA Lakers', 'Boston Celtics'],
-      odds: { 'LA Lakers': 2.55, 'Boston Celtics': 1.52 },
-      startTime: fmt(today, 11, 30),
-      venue: 'Crypto.com Arena, Los Angeles',
-    },
-    {
-      id: 'nba-002',
-      sport: 'NBA',
-      event: 'Golden State Warriors vs Denver Nuggets',
-      teams: ['Golden State Warriors', 'Denver Nuggets'],
-      odds: { 'Golden State Warriors': 2.20, 'Denver Nuggets': 1.68 },
-      startTime: fmt(today, 12, 0),
-      venue: 'Chase Center, San Francisco',
-    },
-    {
-      id: 'nba-003',
-      sport: 'NBA',
-      event: 'Milwaukee Bucks vs Oklahoma City Thunder',
-      teams: ['Milwaukee Bucks', 'Oklahoma City Thunder'],
-      odds: { 'Milwaukee Bucks': 1.95, 'Oklahoma City Thunder': 1.85 },
-      startTime: fmt(tomorrow, 10, 0),
-      venue: 'Fiserv Forum, Milwaukee',
-    },
-    // UFC
-    {
-      id: 'ufc-001',
-      sport: 'UFC',
-      event: 'Alexander Volkanovski vs Ilia Topuria',
-      teams: ['Alexander Volkanovski', 'Ilia Topuria'],
-      odds: { 'Alexander Volkanovski': 2.35, 'Ilia Topuria': 1.62 },
-      startTime: fmt(tomorrow, 14, 0),
-      venue: 'UFC Apex, Las Vegas',
-    },
-    {
-      id: 'ufc-002',
-      sport: 'UFC',
-      event: 'Dricus du Plessis vs Sean Strickland',
-      teams: ['Dricus du Plessis', 'Sean Strickland'],
-      odds: { 'Dricus du Plessis': 1.80, 'Sean Strickland': 2.00 },
-      startTime: fmt(tomorrow, 13, 0),
-      venue: 'UFC Apex, Las Vegas',
-    },
-    // Horse Racing
     {
       id: 'race-001',
       sport: 'Horse Racing',
       event: 'Race 4 Flemington - Maiden Plate 1400m',
       teams: ['Starlight Express', 'Thunder Road', 'Coastal Storm', 'River King'],
-      odds: { 'Starlight Express': 3.20, 'Thunder Road': 2.85, 'Coastal Storm': 4.50, 'River King': 5.00 },
+      odds: { 'Starlight Express': 3.2, 'Thunder Road': 2.85, 'Coastal Storm': 4.5, 'River King': 5.0 },
       startTime: fmt(today, 14, 15),
       venue: 'Flemington, Melbourne',
     },
@@ -155,7 +204,7 @@ function getMockEvents(): SportEvent[] {
       sport: 'Horse Racing',
       event: 'Race 6 Randwick - BM78 Handicap 1600m',
       teams: ['Midnight Shadow', 'Ocean Fury', 'Golden Mile', 'Desert Prince'],
-      odds: { 'Midnight Shadow': 2.60, 'Ocean Fury': 3.45, 'Golden Mile': 4.20, 'Desert Prince': 6.50 },
+      odds: { 'Midnight Shadow': 2.6, 'Ocean Fury': 3.45, 'Golden Mile': 4.2, 'Desert Prince': 6.5 },
       startTime: fmt(today, 15, 30),
       venue: 'Royal Randwick, Sydney',
     },
@@ -164,17 +213,16 @@ function getMockEvents(): SportEvent[] {
       sport: 'Horse Racing',
       event: 'Race 3 Ascot - Class 3 1200m',
       teams: ['Lightning Bolt', 'Perth Glory', 'Western Wind'],
-      odds: { 'Lightning Bolt': 1.95, 'Perth Glory': 3.80, 'Western Wind': 4.10 },
+      odds: { 'Lightning Bolt': 1.95, 'Perth Glory': 3.8, 'Western Wind': 4.1 },
       startTime: fmt(today, 13, 45),
       venue: 'Ascot, Perth',
     },
-    // Greyhounds
     {
       id: 'dogs-001',
       sport: 'Greyhounds',
       event: 'Race 5 Sandown Park - Grade 5 515m',
       teams: ['Flying Maggie', 'Black Tornado', 'Speed Demon', 'Lucky Charm'],
-      odds: { 'Flying Maggie': 2.40, 'Black Tornado': 3.60, 'Speed Demon': 4.80, 'Lucky Charm': 7.50 },
+      odds: { 'Flying Maggie': 2.4, 'Black Tornado': 3.6, 'Speed Demon': 4.8, 'Lucky Charm': 7.5 },
       startTime: fmt(today, 19, 42),
       venue: 'Sandown Park, Melbourne',
     },
@@ -183,73 +231,72 @@ function getMockEvents(): SportEvent[] {
       sport: 'Greyhounds',
       event: 'Race 8 Wentworth Park - Masters 520m',
       teams: ['Rapid Fire', 'Shadow Runner', 'Miss Swift'],
-      odds: { 'Rapid Fire': 1.85, 'Shadow Runner': 3.25, 'Miss Swift': 5.50 },
+      odds: { 'Rapid Fire': 1.85, 'Shadow Runner': 3.25, 'Miss Swift': 5.5 },
       startTime: fmt(today, 21, 15),
       venue: 'Wentworth Park, Sydney',
     },
-    // Soccer
-    {
-      id: 'soccer-001',
-      sport: 'Soccer',
-      event: 'Melbourne Victory vs Western Sydney Wanderers',
-      teams: ['Melbourne Victory', 'Western Sydney Wanderers', 'Draw'],
-      odds: { 'Melbourne Victory': 1.90, 'Draw': 3.45, 'Western Sydney Wanderers': 4.20 },
-      startTime: fmt(today, 19, 45),
-      venue: 'AAMI Park, Melbourne',
-    },
-    {
-      id: 'soccer-002',
-      sport: 'Soccer',
-      event: 'Liverpool vs Manchester United',
-      teams: ['Liverpool', 'Manchester United', 'Draw'],
-      odds: { 'Liverpool': 1.55, 'Draw': 4.20, 'Manchester United': 5.50 },
-      startTime: fmt(tomorrow, 4, 30),
-      venue: 'Anfield, Liverpool',
-    },
-    {
-      id: 'soccer-003',
-      sport: 'Soccer',
-      event: 'Real Madrid vs Barcelona',
-      teams: ['Real Madrid', 'Barcelona', 'Draw'],
-      odds: { 'Real Madrid': 2.30, 'Draw': 3.35, 'Barcelona': 2.95 },
-      startTime: fmt(tomorrow, 5, 0),
-      venue: 'Santiago Bernabeu, Madrid',
-    },
-    {
-      id: 'soccer-004',
-      sport: 'Soccer',
-      event: 'Sydney FC vs Central Coast Mariners',
-      teams: ['Sydney FC', 'Central Coast Mariners', 'Draw'],
-      odds: { 'Sydney FC': 1.72, 'Draw': 3.80, 'Central Coast Mariners': 4.60 },
-      startTime: fmt(today, 17, 35),
-      venue: 'Allianz Stadium, Sydney',
-    },
-    // Extra Horse Racing
     {
       id: 'race-004',
       sport: 'Horse Racing',
       event: 'Race 7 Morphettville - Group 3 2000m',
       teams: ['Adelaide Star', 'Southern Cross', 'Hills Hero', 'Red Admiral'],
-      odds: { 'Adelaide Star': 2.90, 'Southern Cross': 3.15, 'Hills Hero': 4.80, 'Red Admiral': 8.00 },
+      odds: { 'Adelaide Star': 2.9, 'Southern Cross': 3.15, 'Hills Hero': 4.8, 'Red Admiral': 8.0 },
       startTime: fmt(today, 16, 20),
       venue: 'Morphettville, Adelaide',
-    },
-    // Extra NRL
-    {
-      id: 'nrl-004',
-      sport: 'NRL',
-      event: 'Brisbane Broncos vs Gold Coast Titans',
-      teams: ['Brisbane Broncos', 'Gold Coast Titans'],
-      odds: { 'Brisbane Broncos': 1.45, 'Gold Coast Titans': 2.75 },
-      startTime: fmt(tomorrow, 16, 0),
-      venue: 'Suncorp Stadium, Brisbane',
     },
   ];
 }
 
-export const dynamic = 'force-dynamic';
-
 export async function GET() {
-  const events = getMockEvents();
-  return NextResponse.json({ events, count: events.length, source: 'mock' });
+  let events: SportEvent[] = [];
+  let source: 'live' | 'mock' = 'live';
+
+  try {
+    // Fetch all three racing types in parallel
+    const [horses, greyhounds, harness] = await Promise.all([
+      fetchNextToJump('Horse', 20).catch(() => [] as SportEvent[]),
+      fetchNextToJump('Greyhound', 10).catch(() => [] as SportEvent[]),
+      fetchNextToJump('Harness', 10).catch(() => [] as SportEvent[]),
+    ]);
+
+    events = [...horses, ...greyhounds, ...harness];
+
+    // If NextToJump returned nothing, try Schedule fallback
+    if (events.length === 0) {
+      events = await fetchSchedule();
+    }
+  } catch {
+    // All Sportsbet endpoints failed
+  }
+
+  // If still empty, use mock data
+  if (events.length === 0) {
+    events = getMockEvents();
+    source = 'mock';
+  }
+
+  // Sort by start time
+  events.sort(
+    (a, b) => new Date(a.startTime).getTime() - new Date(b.startTime).getTime()
+  );
+
+  // Cache to data/today-races.json
+  try {
+    await fs.writeFile(
+      RACES_FILE,
+      JSON.stringify({ events, source, fetchedAt: new Date().toISOString() }, null, 2)
+    );
+  } catch {
+    // Non-critical if cache write fails
+  }
+
+  return Response.json(
+    { events, count: events.length, source },
+    {
+      headers: {
+        'Cache-Control': 'no-cache, no-store, must-revalidate',
+        Pragma: 'no-cache',
+      },
+    }
+  );
 }
