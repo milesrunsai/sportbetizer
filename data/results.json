@@ -1,0 +1,93 @@
+[
+  {
+    "id": "multi-2026-04-18",
+    "date": "2026-04-18",
+    "legs": [
+      { "event": "Sydney Swans vs Collingwood Magpies", "pick": "Sydney Swans", "odds": 1.85, "result": "won" },
+      { "event": "Melbourne Storm vs Penrith Panthers", "pick": "Melbourne Storm", "odds": 2.10, "result": "lost" },
+      { "event": "Western Bulldogs vs Brisbane Lions", "pick": "Brisbane Lions", "odds": 1.72, "result": "won" },
+      { "event": "Cronulla Sharks vs South Sydney Rabbitohs", "pick": "Cronulla Sharks", "odds": 1.55, "result": "won" }
+    ],
+    "combinedOdds": 10.87,
+    "stake": 6.00,
+    "result": "lost",
+    "returnAmount": 0,
+    "bankrollAfter": 94.00
+  },
+  {
+    "id": "multi-2026-04-19",
+    "date": "2026-04-19",
+    "legs": [
+      { "event": "Geelong Cats vs Richmond Tigers", "pick": "Geelong Cats", "odds": 1.45, "result": "won" },
+      { "event": "North Queensland Cowboys vs Canterbury Bulldogs", "pick": "North Queensland Cowboys", "odds": 1.90, "result": "won" },
+      { "event": "LA Lakers vs Golden State Warriors", "pick": "Golden State Warriors", "odds": 1.65, "result": "won" },
+      { "event": "Race 5 Flemington - Lucky Strike", "pick": "Lucky Strike", "odds": 1.75, "result": "won" }
+    ],
+    "combinedOdds": 7.92,
+    "stake": 4.70,
+    "result": "won",
+    "returnAmount": 37.22,
+    "bankrollAfter": 128.60
+  },
+  {
+    "id": "multi-2026-04-20",
+    "date": "2026-04-20",
+    "legs": [
+      { "event": "Carlton Blues vs Port Adelaide Power", "pick": "Port Adelaide Power", "odds": 1.95, "result": "won" },
+      { "event": "Parramatta Eels vs Manly Sea Eagles", "pick": "Parramatta Eels", "odds": 1.80, "result": "lost" },
+      { "event": "Boston Celtics vs Miami Heat", "pick": "Boston Celtics", "odds": 1.35, "result": "won" },
+      { "event": "Melbourne Victory vs Sydney FC", "pick": "Sydney FC", "odds": 2.25, "result": "won" }
+    ],
+    "combinedOdds": 9.52,
+    "stake": 6.50,
+    "result": "lost",
+    "returnAmount": 0,
+    "bankrollAfter": 122.10
+  },
+  {
+    "id": "multi-2026-04-21",
+    "date": "2026-04-21",
+    "legs": [
+      { "event": "Denver Nuggets vs Phoenix Suns", "pick": "Denver Nuggets", "odds": 1.55, "result": "won" },
+      { "event": "Manchester City vs Arsenal", "pick": "Manchester City", "odds": 1.85, "result": "lost" },
+      { "event": "Hawthorn Hawks vs Adelaide Crows", "pick": "Hawthorn Hawks", "odds": 1.60, "result": "won" },
+      { "event": "Race 3 Randwick - Ocean Fury", "pick": "Ocean Fury", "odds": 2.40, "result": "won" }
+    ],
+    "combinedOdds": 11.02,
+    "stake": 6.15,
+    "result": "lost",
+    "returnAmount": 0,
+    "bankrollAfter": 115.95
+  },
+  {
+    "id": "multi-2026-04-22",
+    "date": "2026-04-22",
+    "legs": [
+      { "event": "Gold Coast Suns vs Essendon Bombers", "pick": "Essendon Bombers", "odds": 1.70, "result": "won" },
+      { "event": "Canberra Raiders vs Newcastle Knights", "pick": "Newcastle Knights", "odds": 2.05, "result": "won" },
+      { "event": "Islam Makhachev vs Charles Oliveira", "pick": "Islam Makhachev", "odds": 1.45, "result": "won" },
+      { "event": "Race 7 Ascot - Thunderbolt", "pick": "Thunderbolt", "odds": 3.20, "result": "lost" },
+      { "event": "Liverpool vs Chelsea", "pick": "Liverpool", "odds": 1.75, "result": "won" }
+    ],
+    "combinedOdds": 29.52,
+    "stake": 3.72,
+    "result": "lost",
+    "returnAmount": 0,
+    "bankrollAfter": 97.35
+  },
+  {
+    "id": "multi-2026-04-23",
+    "date": "2026-04-23",
+    "legs": [
+      { "event": "Fremantle Dockers vs West Coast Eagles", "pick": "Fremantle Dockers", "odds": 1.40, "result": "won" },
+      { "event": "Race 4 Sandown - Midnight Run", "pick": "Midnight Run", "odds": 2.85, "result": "lost" },
+      { "event": "St George Illawarra Dragons vs Wests Tigers", "pick": "St George Illawarra Dragons", "odds": 1.55, "result": "won" },
+      { "event": "Milwaukee Bucks vs Cleveland Cavaliers", "pick": "Cleveland Cavaliers", "odds": 1.90, "result": "won" }
+    ],
+    "combinedOdds": 11.77,
+    "stake": 4.87,
+    "result": "lost",
+    "returnAmount": 0,
+    "bankrollAfter": 87.45
+  }
+]

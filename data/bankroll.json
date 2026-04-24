@@ -1,0 +1,14 @@
+{
+  "startingBalance": 100,
+  "currentBalance": 87.45,
+  "history": [
+    { "date": "2026-04-17", "balance": 100, "change": 0, "reason": "Starting bankroll" },
+    { "date": "2026-04-18", "balance": 94, "change": -6, "reason": "Daily multi lost - AFL/NRL multi" },
+    { "date": "2026-04-19", "balance": 128.60, "change": 34.60, "reason": "Daily multi won - 4 leg multi @ 7.92" },
+    { "date": "2026-04-20", "balance": 122.10, "change": -6.50, "reason": "Daily multi lost - Mixed sports multi" },
+    { "date": "2026-04-21", "balance": 115.95, "change": -6.15, "reason": "Daily multi lost - NBA/Soccer multi" },
+    { "date": "2026-04-22", "balance": 97.35, "change": -18.60, "reason": "Daily multi lost - 5 leg multi bust" },
+    { "date": "2026-04-23", "balance": 87.45, "change": -9.90, "reason": "Daily multi lost - Horse racing letdown" },
+    { "date": "2026-04-24", "balance": 87.45, "change": 0, "reason": "Today - pending" }
+  ]
+}
