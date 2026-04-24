@@ -367,12 +367,18 @@ function extractRaceName(html: string): string {
  */
 async function scrapeRace(
   raceUrl: string,
-  meetingKey: string
+  meetingKey: string,
+  debugLog: string[] = []
 ): Promise<SportEvent | null> {
   const fullUrl = `https://www.racenet.com.au${raceUrl}`;
   const html = await fetchHTML(fullUrl);
 
   const runners = parseRunners(html);
+  debugLog.push(`  Parsed ${runners.length} runners, ${runners.filter(r => r.winOdds > 0).length} with odds. HTML ${html.length} chars`);
+  // Sample what the HTML looks like near runner data
+  const sampleIdx = html.indexOf('Autumn') !== -1 ? html.indexOf('Autumn') : html.indexOf('selection-details-name');
+  if (sampleIdx > 0) debugLog.push(`  Sample: ${html.substring(sampleIdx, sampleIdx + 200).replace(/\n/g, ' ')}`);
+
   // Filter out runners with no odds (scratched)
   const activeRunners = runners.filter((r) => r.winOdds > 0);
   if (activeRunners.length < 2) return null;
@@ -457,7 +463,7 @@ async function scrapeRacenet(debugLog: string[] = []): Promise<SportEvent[]> {
     for (let i = 0; i < toScrape.length; i += 3) {
       const batch = toScrape.slice(i, i + 3);
       const results = await Promise.all(
-        batch.map((url) => scrapeRace(url, meetingKey).then(ev => {
+        batch.map((url) => scrapeRace(url, meetingKey, debugLog).then(ev => {
             debugLog.push(`OK: ${url.substring(0, 60)} -> ${ev ? ev.teams.length + ' runners' : 'null'}`);
             return ev;
           }).catch((e) => {
