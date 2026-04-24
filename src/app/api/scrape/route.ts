@@ -536,8 +536,16 @@ export async function GET() {
   let source: 'live' | 'mock' = 'live';
 
   let error: string | undefined;
+  let debugInfo: string | undefined;
   try {
-    events = await scrapeRacenet();
+    const links = await discoverMeetingLinks();
+    debugInfo = `Found ${links.length} links`;
+    if (links.length > 0) {
+      debugInfo += `: ${links[0]}`;
+    }
+    if (links.length > 0) {
+      events = await scrapeRacenet();
+    }
   } catch (e) {
     error = String(e);
   }
@@ -564,7 +572,7 @@ export async function GET() {
   }
 
   return Response.json(
-    { events, count: events.length, source, ...(error ? { error } : {}) },
+    { events, count: events.length, source, ...(error ? { error } : {}), ...(debugInfo ? { debug: debugInfo } : {}) },
     {
       headers: {
         'Cache-Control': 'no-cache, no-store, must-revalidate',
