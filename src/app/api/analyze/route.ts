@@ -1,7 +1,7 @@
 import { promises as fs } from 'fs';
 import path from 'path';
 import type { SportEvent, AnalyzedEvent, ModelPick } from '@/lib/types';
-import { saveTodayAnalysis } from '@/lib/data';
+import { saveTodayAnalysis } from '@/lib/db';
 import { enrichRaceWithRacenet, type RacenetProfile } from '@/lib/racenet';
 
 export const dynamic = 'force-dynamic';

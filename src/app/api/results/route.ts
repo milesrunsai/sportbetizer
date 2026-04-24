@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { getResults, saveResults, getBankroll, saveBankroll } from '@/lib/data';
+import { getResults, saveResults, getBankroll, saveBankroll } from '@/lib/db';
 import type { ResultEntry } from '@/lib/types';
 
 export const dynamic = 'force-dynamic';

@@ -1,4 +1,4 @@
-import { getBankroll, getResults } from '@/lib/data';
+import { getBankroll, getResults } from '@/lib/db';
 import ResultsClient from './ResultsClient';
 
 export const dynamic = 'force-dynamic';

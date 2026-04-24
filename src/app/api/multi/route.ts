@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import type { AnalyzedEvent, MultiLeg, DailyMulti } from '@/lib/types';
-import { getBankroll } from '@/lib/data';
+import { getBankroll } from '@/lib/db';
 
 export const dynamic = 'force-dynamic';
 
