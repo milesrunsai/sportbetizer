@@ -57,7 +57,7 @@ function Header() {
             <Link href="/" className="px-3 py-1.5 rounded text-white/80 hover:text-white hover:bg-white/10 transition-colors">
               Today
             </Link>
-            <Link href="/analysis" className="px-3 py-1.5 rounded text-white/80 hover:text-white hover:bg-white/10 transition-colors">
+            <Link href="/aipicks" className="px-3 py-1.5 rounded text-white/80 hover:text-white hover:bg-white/10 transition-colors">
               AI Picks
             </Link>
             <Link href="/results" className="px-3 py-1.5 rounded text-white/80 hover:text-white hover:bg-white/10 transition-colors">
@@ -68,7 +68,7 @@ function Header() {
             </Link>
           </nav>
           <Link
-            href="/analysis"
+            href="/aipicks"
             className="bg-[#f47920] hover:bg-[#e06810] text-white text-[13px] font-bold px-4 py-2 rounded-lg transition-colors flex items-center gap-1.5"
           >
             <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -87,7 +87,7 @@ function CategoryBar() {
     { label: 'Horses', icon: '\u{1F3C7}', href: '/analysis?sport=Racing' },
     { label: 'Greyhounds', icon: '\u{1F415}', href: '/analysis?sport=Dogs' },
     { label: 'Harness', icon: '\u{1F3CE}', href: '/analysis?sport=Racing' },
-    { label: 'AI Picks', icon: '\u{1F916}', href: '/analysis' },
+    { label: 'AI Picks', icon: '\u{1F916}', href: '/aipicks' },
     { label: 'Track Record', icon: '\u{1F4CA}', href: '/results' },
     { label: 'How It Works', icon: '\u{2699}', href: '/how-it-works' },
   ];
@@ -121,7 +121,7 @@ function Footer() {
             <h4 className="text-white font-bold text-sm mb-3">Navigation</h4>
             <div className="space-y-2 text-[13px]">
               <Link href="/" className="block hover:text-white transition-colors">Home</Link>
-              <Link href="/analysis" className="block hover:text-white transition-colors">AI Picks</Link>
+              <Link href="/aipicks" className="block hover:text-white transition-colors">AI Picks</Link>
               <Link href="/results" className="block hover:text-white transition-colors">Track Record</Link>
               <Link href="/how-it-works" className="block hover:text-white transition-colors">How It Works</Link>
             </div>

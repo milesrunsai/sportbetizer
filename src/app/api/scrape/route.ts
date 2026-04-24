@@ -1,5 +1,6 @@
 import { promises as fs } from 'fs';
 import path from 'path';
+import { neon } from '@neondatabase/serverless';
 import type { SportEvent } from '@/lib/types';
 
 export const dynamic = 'force-dynamic';
@@ -13,6 +14,22 @@ const BASE_HEADERS: Record<string, string> = {
 
 const RACES_FILE = path.join(process.cwd(), 'data', 'today-races.json');
 const MAX_RACES = 15;
+
+async function fetchFromDb(): Promise<{ events: SportEvent[]; scrapedAt: string; count: number } | null> {
+  const url = process.env.DATABASE_URL;
+  if (!url) return null;
+  try {
+    const sql = neon(url);
+    const today = new Date().toISOString().split('T')[0];
+    const rows = await sql`SELECT data FROM races WHERE race_date = ${today} LIMIT 1`;
+    if (rows.length === 0) return null;
+    const data = typeof rows[0].data === 'string' ? JSON.parse(rows[0].data) : rows[0].data;
+    if (data?.events && data.events.length > 0) return data;
+    return null;
+  } catch {
+    return null;
+  }
+}
 
 // Cookie jar for Racenet's redirect chain
 const cookieJar = new Map<string, string>();
@@ -368,16 +385,11 @@ function extractRaceName(html: string): string {
 async function scrapeRace(
   raceUrl: string,
   meetingKey: string,
-  debugLog: string[] = []
 ): Promise<SportEvent | null> {
   const fullUrl = `https://www.racenet.com.au${raceUrl}`;
   const html = await fetchHTML(fullUrl);
 
   const runners = parseRunners(html);
-  debugLog.push(`  Parsed ${runners.length} runners, ${runners.filter(r => r.winOdds > 0).length} with odds. HTML ${html.length} chars`);
-  // Sample what the HTML looks like near runner data
-  const sampleIdx = html.indexOf('Autumn') !== -1 ? html.indexOf('Autumn') : html.indexOf('selection-details-name');
-  if (sampleIdx > 0) debugLog.push(`  Sample: ${html.substring(sampleIdx, sampleIdx + 200).replace(/\n/g, ' ')}`);
 
   // Filter out runners with no odds (scratched)
   const activeRunners = runners.filter((r) => r.winOdds > 0);
@@ -424,9 +436,8 @@ async function scrapeRace(
 /**
  * Main Racenet scraper: discover meetings, scrape races, return SportEvents.
  */
-async function scrapeRacenet(debugLog: string[] = []): Promise<SportEvent[]> {
+async function scrapeRacenet(): Promise<SportEvent[]> {
   const links = await discoverMeetingLinks();
-  debugLog.push(`Homepage: ${links.length} links`);
   if (links.length === 0) return [];
 
   const meetings = groupByMeeting(links);
@@ -463,13 +474,7 @@ async function scrapeRacenet(debugLog: string[] = []): Promise<SportEvent[]> {
     for (let i = 0; i < toScrape.length; i += 3) {
       const batch = toScrape.slice(i, i + 3);
       const results = await Promise.all(
-        batch.map((url) => scrapeRace(url, meetingKey, debugLog).then(ev => {
-            debugLog.push(`OK: ${url.substring(0, 60)} -> ${ev ? ev.teams.length + ' runners' : 'null'}`);
-            return ev;
-          }).catch((e) => {
-            debugLog.push(`FAIL: ${url.substring(0, 60)} -> ${String(e).substring(0, 100)}`);
-            return null;
-          }))
+        batch.map((url) => scrapeRace(url, meetingKey).catch(() => null))
       );
       for (const ev of results) {
         if (ev) {
@@ -558,15 +563,23 @@ export async function GET() {
   let events: SportEvent[] = [];
   let source: 'live' | 'mock' = 'live';
 
-  let error: string | undefined;
-  const debugLog: string[] = [];
-  try {
-    events = await scrapeRacenet(debugLog);
-  } catch (e) {
-    error = String(e);
+  // 1. Try reading from DB first
+  const dbData = await fetchFromDb();
+  if (dbData && dbData.events.length > 0) {
+    events = dbData.events;
+    source = 'live';
   }
 
-  // If still empty, use mock data
+  // 2. Fallback: scrape Racenet
+  if (events.length === 0) {
+    try {
+      events = await scrapeRacenet();
+    } catch {
+      // Fall through to mock
+    }
+  }
+
+  // 3. Final fallback: mock data
   if (events.length === 0) {
     events = getMockEvents();
     source = 'mock';
@@ -588,7 +601,7 @@ export async function GET() {
   }
 
   return Response.json(
-    { events, count: events.length, source, ...(error ? { error } : {}), debug: debugLog },
+    { events, count: events.length, source },
     {
       headers: {
         'Cache-Control': 'no-cache, no-store, must-revalidate',
