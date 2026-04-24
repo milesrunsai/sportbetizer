@@ -20,7 +20,6 @@ export default function ResultsClient({ bankroll, results }: ResultsClientProps)
     .filter((r) => r.result === 'won')
     .reduce<ResultEntry | null>((best, r) => (!best || r.returnAmount > best.returnAmount ? r : best), null);
 
-  // Streak
   let streak = 0;
   let streakType: 'W' | 'L' | null = null;
   for (let i = results.length - 1; i >= 0; i--) {
@@ -37,7 +36,7 @@ export default function ResultsClient({ bankroll, results }: ResultsClientProps)
     <div className="max-w-6xl mx-auto px-4 py-8">
       <div className="mb-6">
         <h1 className="text-2xl font-bold text-white mb-1">Track Record</h1>
-        <p className="text-sm text-zinc-500">Full history of every daily multi</p>
+        <p className="text-sm text-slate-500">Full history of every daily multi</p>
       </div>
 
       {/* Stats Grid */}
@@ -52,9 +51,9 @@ export default function ResultsClient({ bankroll, results }: ResultsClientProps)
           { label: 'Total Staked', value: `$${totalStaked.toFixed(2)}`, accent: false },
           { label: 'Total Returned', value: `$${totalReturns.toFixed(2)}`, accent: totalReturns > totalStaked },
         ].map((stat) => (
-          <div key={stat.label} className="bg-zinc-900 border border-zinc-800 rounded-lg p-3">
-            <div className="text-[10px] text-zinc-500 uppercase tracking-wider">{stat.label}</div>
-            <div className={`text-lg font-bold mt-1 ${stat.accent ? 'text-green-400' : 'text-red-400'}`}>
+          <div key={stat.label} className="bg-[#1a1a2e] border border-[#2d2d50] rounded-lg p-3">
+            <div className="text-[10px] text-slate-500 uppercase tracking-wider">{stat.label}</div>
+            <div className={`text-lg font-bold mt-1 ${stat.accent ? 'text-[#E8A838]' : 'text-red-400'}`}>
               {stat.value}
             </div>
           </div>
@@ -62,21 +61,21 @@ export default function ResultsClient({ bankroll, results }: ResultsClientProps)
       </div>
 
       {/* Bankroll Chart */}
-      <div className="bg-zinc-900 border border-zinc-800 rounded-xl p-4 mb-6">
-        <h2 className="text-sm font-semibold text-zinc-500 uppercase tracking-wider mb-4">
+      <div className="bg-[#1a1a2e] border border-[#2d2d50] rounded-xl p-4 mb-6">
+        <h2 className="text-sm font-semibold text-slate-500 uppercase tracking-wider mb-4">
           Bankroll Over Time
         </h2>
         <BankrollChart history={bankroll.history.filter((h) => h.balance > 0)} height={220} />
       </div>
 
       {/* Results Table */}
-      <div className="bg-zinc-900 border border-zinc-800 rounded-xl overflow-hidden">
-        <div className="px-4 py-3 border-b border-zinc-800">
-          <h2 className="text-sm font-semibold text-zinc-500 uppercase tracking-wider">
+      <div className="bg-[#1a1a2e] border border-[#2d2d50] rounded-xl overflow-hidden">
+        <div className="px-4 py-3 border-b border-[#2d2d50]">
+          <h2 className="text-sm font-semibold text-slate-500 uppercase tracking-wider">
             All Results
           </h2>
         </div>
-        <div className="divide-y divide-zinc-800/50">
+        <div className="divide-y divide-[#2d2d50]/50">
           {[...results].reverse().map((result) => (
             <div key={result.id} className="px-4 py-3">
               <div className="flex items-center justify-between mb-2">
@@ -84,13 +83,13 @@ export default function ResultsClient({ bankroll, results }: ResultsClientProps)
                   <span
                     className={`text-xs font-bold px-2 py-0.5 rounded ${
                       result.result === 'won'
-                        ? 'bg-green-500/20 text-green-400'
+                        ? 'bg-[#E8A838]/20 text-[#E8A838]'
                         : 'bg-red-500/20 text-red-400'
                     }`}
                   >
                     {result.result.toUpperCase()}
                   </span>
-                  <span className="text-sm text-zinc-300">
+                  <span className="text-sm text-slate-300">
                     {new Date(result.date).toLocaleDateString('en-AU', {
                       weekday: 'short',
                       day: 'numeric',
@@ -102,7 +101,7 @@ export default function ResultsClient({ bankroll, results }: ResultsClientProps)
                 <div className="text-right">
                   <span
                     className={`text-sm font-bold ${
-                      result.result === 'won' ? 'text-green-400' : 'text-red-400'
+                      result.result === 'won' ? 'text-[#E8A838]' : 'text-red-400'
                     }`}
                   >
                     {result.result === 'won'
@@ -117,7 +116,7 @@ export default function ResultsClient({ bankroll, results }: ResultsClientProps)
                     key={i}
                     className={`text-[10px] px-2 py-0.5 rounded ${
                       leg.result === 'won'
-                        ? 'bg-green-500/10 text-green-500'
+                        ? 'bg-[#E8A838]/10 text-[#E8A838]'
                         : 'bg-red-500/10 text-red-500'
                     }`}
                   >
@@ -125,7 +124,7 @@ export default function ResultsClient({ bankroll, results }: ResultsClientProps)
                   </span>
                 ))}
               </div>
-              <div className="flex gap-4 mt-1.5 text-[10px] text-zinc-600">
+              <div className="flex gap-4 mt-1.5 text-[10px] text-slate-600">
                 <span>Combined: {result.combinedOdds.toFixed(2)}x</span>
                 <span>Stake: ${result.stake.toFixed(2)}</span>
                 <span>Return: ${result.returnAmount.toFixed(2)}</span>

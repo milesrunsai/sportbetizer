@@ -21,33 +21,33 @@ export const metadata: Metadata = {
 
 function Header() {
   return (
-    <header className="border-b border-zinc-800 bg-zinc-950/80 backdrop-blur-md sticky top-0 z-50">
+    <header className="border-b border-[#2d2d50] bg-[#0f0f23]/95 backdrop-blur-md sticky top-0 z-50">
       <div className="max-w-6xl mx-auto px-4 h-14 flex items-center justify-between">
         <Link href="/" className="flex items-center gap-2">
-          <Image src="/logo.jpg" alt="MilesRunsAI" width={160} height={40} className="h-8 w-auto" priority />
+          <Image src="/logo.jpg" alt="MilesRunsAI" width={160} height={32} className="h-8 w-auto" priority />
         </Link>
         <nav className="flex items-center gap-1 text-sm">
           <Link
             href="/"
-            className="px-3 py-1.5 rounded-lg text-zinc-400 hover:text-white hover:bg-zinc-800/50 transition-colors"
+            className="px-3 py-1.5 rounded-lg text-slate-400 hover:text-white hover:bg-[#1a1a2e] transition-colors"
           >
             Today&apos;s Multi
           </Link>
           <Link
             href="/analysis"
-            className="px-3 py-1.5 rounded-lg text-zinc-400 hover:text-white hover:bg-zinc-800/50 transition-colors"
+            className="px-3 py-1.5 rounded-lg text-slate-400 hover:text-white hover:bg-[#1a1a2e] transition-colors"
           >
             Analysis
           </Link>
           <Link
             href="/results"
-            className="px-3 py-1.5 rounded-lg text-zinc-400 hover:text-white hover:bg-zinc-800/50 transition-colors"
+            className="px-3 py-1.5 rounded-lg text-slate-400 hover:text-white hover:bg-[#1a1a2e] transition-colors"
           >
             Track Record
           </Link>
           <Link
             href="/how-it-works"
-            className="hidden sm:block px-3 py-1.5 rounded-lg text-zinc-400 hover:text-white hover:bg-zinc-800/50 transition-colors"
+            className="hidden sm:block px-3 py-1.5 rounded-lg text-slate-400 hover:text-white hover:bg-[#1a1a2e] transition-colors"
           >
             How It Works
           </Link>
@@ -58,14 +58,18 @@ function Header() {
 }
 
 function Footer() {
-  const startDate = new Date('2026-04-17');
-  const today = new Date();
-  const dayNumber = Math.floor((today.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24)) + 1;
-
   return (
-    <footer className="border-t border-zinc-800 mt-auto">
-      <div className="max-w-6xl mx-auto px-4 py-6 text-center text-sm text-zinc-600">
-        Built by @milesdoesai — Day {dayNumber} of giving my AI $100 to gamble
+    <footer className="border-t border-[#2d2d50] mt-auto">
+      <div className="max-w-6xl mx-auto px-4 py-6 text-center text-sm text-slate-600">
+        Built by{' '}
+        <a
+          href="https://x.com/milesdoesai"
+          target="_blank"
+          rel="noopener noreferrer"
+          className="text-[#4A9EE8] hover:text-[#4A9EE8]/80 transition-colors"
+        >
+          @milesdoesai
+        </a>
       </div>
     </footer>
   );

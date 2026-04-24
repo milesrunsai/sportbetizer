@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import Image from 'next/image';
 import MultiBetCard from '@/components/MultiBetCard';
 import BankrollChart from '@/components/BankrollChart';
 import type { BankrollData, ResultEntry, DailyMulti } from '@/lib/types';
@@ -32,14 +33,18 @@ export default function LandingClient({ bankroll, results }: LandingClientProps)
     <div className="max-w-6xl mx-auto px-4 py-8">
       {/* Hero */}
       <section className="text-center mb-12">
-        <h1 className="text-4xl sm:text-5xl font-black tracking-tight mb-3">
-          <span className="text-green-500 glow-text-green">MilesRunsAI</span>{' '}
-          <span className="text-white">Sportsbetalizer</span>
-        </h1>
-        <p className="text-zinc-500 text-lg">3 AI Models. 1 Daily Multi. Real Money.</p>
+        <Image
+          src="/logo.jpg"
+          alt="MilesRunsAI Sportsbetalizer"
+          width={400}
+          height={200}
+          className="mx-auto h-[200px] w-auto"
+          priority
+        />
+        <p className="text-zinc-400 text-lg mt-4">3 AI Models. 1 Daily Multi. Real Money.</p>
         <div className="flex items-center justify-center gap-2 mt-3">
-          <span className="w-2 h-2 rounded-full bg-green-500 animate-pulse-dot" />
-          <span className="text-xs text-zinc-500">LIVE</span>
+          <span className="w-2 h-2 rounded-full bg-[#E8A838] animate-pulse-dot" />
+          <span className="text-xs text-slate-500">LIVE</span>
         </div>
       </section>
 
@@ -47,15 +52,15 @@ export default function LandingClient({ bankroll, results }: LandingClientProps)
         {/* Main: Today's Multi */}
         <div className="lg:col-span-2 space-y-6">
           <div>
-            <h2 className="text-sm font-semibold text-zinc-500 uppercase tracking-wider mb-3">
+            <h2 className="text-sm font-semibold text-slate-500 uppercase tracking-wider mb-3">
               Today&apos;s Multi Bet
             </h2>
             {loading ? (
-              <div className="bg-zinc-900 border border-zinc-800 rounded-xl p-12 text-center">
-                <div className="text-zinc-600 animate-pulse">Generating today&apos;s multi...</div>
+              <div className="bg-[#1a1a2e] border border-[#2d2d50] rounded-xl p-12 text-center">
+                <div className="text-slate-600 animate-pulse">Generating today&apos;s multi...</div>
               </div>
             ) : multi ? (
-              <div className="glow-green rounded-xl">
+              <div className="glow-gold rounded-xl">
                 <MultiBetCard
                   date={multi.date}
                   legs={multi.legs}
@@ -66,38 +71,38 @@ export default function LandingClient({ bankroll, results }: LandingClientProps)
                 />
               </div>
             ) : (
-              <div className="bg-zinc-900 border border-zinc-800 rounded-xl p-12 text-center">
-                <div className="text-zinc-600">No multi generated yet today</div>
+              <div className="bg-[#1a1a2e] border border-[#2d2d50] rounded-xl p-12 text-center">
+                <div className="text-slate-600">No multi generated yet today</div>
               </div>
             )}
           </div>
 
           {/* Recent Results */}
           <div>
-            <h2 className="text-sm font-semibold text-zinc-500 uppercase tracking-wider mb-3">
+            <h2 className="text-sm font-semibold text-slate-500 uppercase tracking-wider mb-3">
               Last 7 Days
             </h2>
             <div className="space-y-2">
               {recentResults.map((result) => (
                 <div
                   key={result.id}
-                  className="bg-zinc-900 border border-zinc-800 rounded-lg px-4 py-3 flex items-center justify-between"
+                  className="bg-[#1a1a2e] border border-[#2d2d50] rounded-lg px-4 py-3 flex items-center justify-between"
                 >
                   <div className="flex items-center gap-3">
                     <span
                       className={`w-2 h-2 rounded-full ${
-                        result.result === 'won' ? 'bg-green-500' : 'bg-red-500'
+                        result.result === 'won' ? 'bg-[#E8A838]' : 'bg-red-500'
                       }`}
                     />
                     <div>
-                      <div className="text-sm text-zinc-300">
+                      <div className="text-sm text-slate-300">
                         {new Date(result.date).toLocaleDateString('en-AU', {
                           weekday: 'short',
                           day: 'numeric',
                           month: 'short',
                         })}
                       </div>
-                      <div className="text-xs text-zinc-600">
+                      <div className="text-xs text-slate-600">
                         {result.legs.length} legs @ {result.combinedOdds.toFixed(2)}
                       </div>
                     </div>
@@ -105,14 +110,14 @@ export default function LandingClient({ bankroll, results }: LandingClientProps)
                   <div className="text-right">
                     <div
                       className={`text-sm font-bold ${
-                        result.result === 'won' ? 'text-green-400' : 'text-red-400'
+                        result.result === 'won' ? 'text-[#E8A838]' : 'text-red-400'
                       }`}
                     >
                       {result.result === 'won'
                         ? `+$${(result.returnAmount - result.stake).toFixed(2)}`
                         : `-$${result.stake.toFixed(2)}`}
                     </div>
-                    <div className="text-[10px] text-zinc-600">
+                    <div className="text-[10px] text-slate-600">
                       Stake: ${result.stake.toFixed(2)}
                     </div>
                   </div>
@@ -120,13 +125,23 @@ export default function LandingClient({ bankroll, results }: LandingClientProps)
               ))}
             </div>
           </div>
+
+          {/* Next to Jump */}
+          <div>
+            <h2 className="text-sm font-semibold text-slate-500 uppercase tracking-wider mb-3">
+              Next to Jump
+            </h2>
+            <div className="bg-[#1a1a2e] border border-[#2d2d50] rounded-xl p-6 text-center">
+              <div className="text-slate-500 text-sm">Tomorrow&apos;s multi generates at 8:00 AM AEST</div>
+            </div>
+          </div>
         </div>
 
         {/* Sidebar: Bankroll */}
         <div className="space-y-6">
           {/* Bankroll Card */}
-          <div className="bg-zinc-900 border border-zinc-800 rounded-xl p-4">
-            <h2 className="text-sm font-semibold text-zinc-500 uppercase tracking-wider mb-4">
+          <div className="bg-[#1a1a2e] border border-[#2d2d50] rounded-xl p-4">
+            <h2 className="text-sm font-semibold text-slate-500 uppercase tracking-wider mb-4">
               Bankroll
             </h2>
             <div className="text-3xl font-black text-white mb-1">
@@ -135,12 +150,12 @@ export default function LandingClient({ bankroll, results }: LandingClientProps)
             <div className="flex items-center gap-2 mb-4">
               <span
                 className={`text-sm font-semibold ${
-                  pnl >= 0 ? 'text-green-400' : 'text-red-400'
+                  pnl >= 0 ? 'text-[#E8A838]' : 'text-red-400'
                 }`}
               >
                 {pnl >= 0 ? '+' : ''}${pnl.toFixed(2)} ({pnlPercent}%)
               </span>
-              <span className="text-xs text-zinc-600">from ${bankroll.startingBalance}</span>
+              <span className="text-xs text-slate-600">from ${bankroll.startingBalance}</span>
             </div>
             <BankrollChart
               history={bankroll.history.filter((h) => h.balance > 0)}
@@ -149,8 +164,8 @@ export default function LandingClient({ bankroll, results }: LandingClientProps)
           </div>
 
           {/* Stats */}
-          <div className="bg-zinc-900 border border-zinc-800 rounded-xl p-4">
-            <h2 className="text-sm font-semibold text-zinc-500 uppercase tracking-wider mb-3">
+          <div className="bg-[#1a1a2e] border border-[#2d2d50] rounded-xl p-4">
+            <h2 className="text-sm font-semibold text-slate-500 uppercase tracking-wider mb-3">
               Quick Stats
             </h2>
             <div className="space-y-3">
@@ -177,10 +192,10 @@ export default function LandingClient({ bankroll, results }: LandingClientProps)
                 },
               ].map((stat) => (
                 <div key={stat.label} className="flex items-center justify-between">
-                  <span className="text-xs text-zinc-500">{stat.label}</span>
+                  <span className="text-xs text-slate-500">{stat.label}</span>
                   <div className="text-right">
-                    <span className="text-sm font-semibold text-zinc-200">{stat.value}</span>
-                    <span className="text-[10px] text-zinc-600 ml-1">{stat.sub}</span>
+                    <span className="text-sm font-semibold text-slate-200">{stat.value}</span>
+                    <span className="text-[10px] text-slate-600 ml-1">{stat.sub}</span>
                   </div>
                 </div>
               ))}

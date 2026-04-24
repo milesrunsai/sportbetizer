@@ -33,7 +33,7 @@ export default function AnalysisPage() {
     <div className="max-w-6xl mx-auto px-4 py-8">
       <div className="mb-6">
         <h1 className="text-2xl font-bold text-white mb-1">Today&apos;s Analysis</h1>
-        <p className="text-sm text-zinc-500">
+        <p className="text-sm text-slate-500">
           {analyzed.length} events analyzed / {consensusCount} consensus picks
         </p>
       </div>
@@ -51,7 +51,7 @@ export default function AnalysisPage() {
           {Array.from({ length: 6 }).map((_, i) => (
             <div
               key={i}
-              className="bg-zinc-900 border border-zinc-800 rounded-xl h-48 animate-pulse"
+              className="bg-[#1a1a2e] border border-[#2d2d50] rounded-xl h-48 animate-pulse"
             />
           ))}
         </div>
@@ -64,7 +64,7 @@ export default function AnalysisPage() {
       )}
 
       {!loading && filtered.length === 0 && (
-        <div className="text-center py-12 text-zinc-600">
+        <div className="text-center py-12 text-slate-600">
           No events found for this sport today.
         </div>
       )}

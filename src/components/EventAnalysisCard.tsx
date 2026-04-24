@@ -11,27 +11,27 @@ export default function EventAnalysisCard({ analysis }: EventAnalysisCardProps) 
   const { event, claudePick, gptPick, geminiPick, consensus, consensusPick, confidenceLevel } = analysis;
 
   return (
-    <div className="bg-zinc-900 border border-zinc-800 rounded-xl overflow-hidden">
+    <div className="bg-[#1a1a2e] border border-[#2d2d50] rounded-xl overflow-hidden">
       {/* Header */}
-      <div className="px-4 py-3 border-b border-zinc-800 flex items-center justify-between">
+      <div className="px-4 py-3 border-b border-[#2d2d50] flex items-center justify-between">
         <div>
           <div className="flex items-center gap-2">
-            <span className="text-[10px] font-bold text-zinc-500 bg-zinc-800 px-2 py-0.5 rounded">
+            <span className="text-[10px] font-bold text-slate-500 bg-[#252540] px-2 py-0.5 rounded border border-[#2d2d50]">
               {event.sport}
             </span>
-            <span className="text-[10px] text-zinc-600">
+            <span className="text-[10px] text-slate-600">
               {new Date(event.startTime).toLocaleTimeString('en-AU', { hour: '2-digit', minute: '2-digit' })}
             </span>
           </div>
-          <div className="text-sm font-semibold text-zinc-200 mt-1">{event.event}</div>
-          <div className="text-xs text-zinc-500 mt-0.5">{event.venue}</div>
+          <div className="text-sm font-semibold text-slate-200 mt-1">{event.event}</div>
+          <div className="text-xs text-slate-500 mt-0.5">{event.venue}</div>
         </div>
         <div className="flex flex-col items-end gap-1">
           <span
             className={`text-[10px] font-bold px-2 py-0.5 rounded ${
               consensus === 'AGREE'
-                ? 'bg-green-500/20 text-green-400'
-                : 'bg-yellow-500/20 text-yellow-400'
+                ? 'bg-[#E8A838]/20 text-[#E8A838]'
+                : 'bg-[#4A9EE8]/20 text-[#4A9EE8]'
             }`}
           >
             {consensus}
@@ -40,8 +40,8 @@ export default function EventAnalysisCard({ analysis }: EventAnalysisCardProps) 
             <span
               className={`text-[10px] px-2 py-0.5 rounded ${
                 confidenceLevel === 'high'
-                  ? 'bg-green-500/10 text-green-500'
-                  : 'bg-yellow-500/10 text-yellow-500'
+                  ? 'bg-[#E8A838]/10 text-[#E8A838]'
+                  : 'bg-[#4A9EE8]/10 text-[#4A9EE8]'
               }`}
             >
               {confidenceLevel} confidence
@@ -51,11 +51,11 @@ export default function EventAnalysisCard({ analysis }: EventAnalysisCardProps) 
       </div>
 
       {/* Odds */}
-      <div className="px-4 py-2 bg-zinc-800/30 flex flex-wrap gap-3">
+      <div className="px-4 py-2 bg-[#252540]/50 flex flex-wrap gap-3">
         {Object.entries(event.odds).map(([key, value]) => (
           <div key={key} className="text-center">
-            <div className="text-[10px] text-zinc-500 truncate max-w-[80px]">{key}</div>
-            <div className={`text-sm font-bold ${consensusPick === key ? 'text-green-400' : 'text-zinc-300'}`}>
+            <div className="text-[10px] text-slate-500 truncate max-w-[80px]">{key}</div>
+            <div className={`text-sm font-bold ${consensusPick === key ? 'text-[#E8A838]' : 'text-slate-300'}`}>
               {value.toFixed(2)}
             </div>
           </div>
@@ -63,7 +63,7 @@ export default function EventAnalysisCard({ analysis }: EventAnalysisCardProps) 
       </div>
 
       {/* Model picks */}
-      <div className="divide-y divide-zinc-800/50">
+      <div className="divide-y divide-[#2d2d50]/50">
         {[
           { model: 'claude' as const, pick: claudePick },
           { model: 'gpt' as const, pick: gptPick },
@@ -75,10 +75,10 @@ export default function EventAnalysisCard({ analysis }: EventAnalysisCardProps) 
             </div>
             <div className="flex-1 min-w-0">
               <div className="flex items-center gap-2">
-                <span className="text-xs font-semibold text-zinc-200">{pick.pick}</span>
-                <span className="text-[10px] text-zinc-600">({pick.confidence}/10)</span>
+                <span className="text-xs font-semibold text-slate-200">{pick.pick}</span>
+                <span className="text-[10px] text-slate-600">({pick.confidence}/10)</span>
               </div>
-              <p className="text-xs text-zinc-500 mt-0.5 leading-relaxed">{pick.reasoning}</p>
+              <p className="text-xs text-slate-500 mt-0.5 leading-relaxed">{pick.reasoning}</p>
             </div>
           </div>
         ))}

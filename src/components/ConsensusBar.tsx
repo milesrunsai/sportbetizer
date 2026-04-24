@@ -23,9 +23,9 @@ export default function ConsensusBar({ claudeAgrees, gptAgrees, geminiAgrees, si
         <span
           className={`text-xs font-semibold px-2 py-0.5 rounded ${
             count === 3
-              ? 'bg-green-500/20 text-green-400'
+              ? 'bg-[#E8A838]/20 text-[#E8A838]'
               : count === 2
-                ? 'bg-yellow-500/20 text-yellow-400'
+                ? 'bg-[#4A9EE8]/20 text-[#4A9EE8]'
                 : 'bg-red-500/20 text-red-400'
           }`}
         >

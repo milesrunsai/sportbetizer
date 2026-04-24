@@ -8,7 +8,7 @@ interface ModelIconProps {
 
 const config = {
   claude: { label: 'C', color: '#A855F7', name: 'Claude' },
-  gpt: { label: 'G', color: '#22C55E', name: 'GPT' },
+  gpt: { label: 'G', color: '#10B981', name: 'GPT' },
   gemini: { label: 'Ge', color: '#3B82F6', name: 'Gemini' },
 };
 
@@ -19,7 +19,7 @@ export default function ModelIcon({ model, agrees = true, size = 'md' }: ModelIc
   return (
     <div className="flex flex-col items-center gap-1" title={name}>
       <div
-        className="rounded-full flex items-center justify-center font-bold text-black transition-all"
+        className="rounded-full flex items-center justify-center font-bold transition-all"
         style={{
           width: dim,
           height: dim,
@@ -27,13 +27,13 @@ export default function ModelIcon({ model, agrees = true, size = 'md' }: ModelIc
           border: `2px solid ${color}`,
           opacity: agrees ? 1 : 0.3,
           fontSize: size === 'sm' ? 10 : 12,
-          color: agrees ? '#000' : color,
+          color: agrees ? '#0f0f23' : color,
         }}
       >
         {label}
       </div>
       {size === 'md' && (
-        <span className="text-[10px] text-zinc-500">{name}</span>
+        <span className="text-[10px] text-slate-500">{name}</span>
       )}
     </div>
   );

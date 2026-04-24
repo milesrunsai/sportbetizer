@@ -31,8 +31,8 @@ export default function SportFilter({ selected, onChange, sports }: SportFilterP
           onClick={() => onChange(sport)}
           className={`px-4 py-1.5 rounded-full text-xs font-semibold whitespace-nowrap transition-all ${
             selected === sport
-              ? 'bg-green-500 text-black'
-              : 'bg-zinc-800 text-zinc-400 hover:bg-zinc-700 hover:text-zinc-300'
+              ? 'bg-[#4A9EE8] text-[#0f0f23]'
+              : 'bg-[#1a1a2e] text-slate-400 hover:bg-[#252540] hover:text-slate-300 border border-[#2d2d50]'
           }`}
         >
           {sportLabels[sport] || sport}
