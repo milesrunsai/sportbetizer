@@ -4,6 +4,112 @@ import { useState, useEffect, useMemo } from 'react';
 import ModelIcon from '@/components/ModelIcon';
 import type { SportEvent, AnalyzedEvent } from '@/lib/types';
 
+const TAB_API = 'https://api.beta.tab.com.au/v1/tab-info-service';
+
+const AU_STATES = new Set(['NSW', 'VIC', 'SA', 'QLD', 'WA', 'TAS', 'ACT', 'NT']);
+
+interface TabRunner {
+  runnerName: string;
+  runnerNumber: number;
+  barrierNumber: number;
+  riderDriverName?: string;
+  trainerName?: string;
+  handicapWeight?: number;
+  last5Starts?: string;
+  dfsFormRating?: number;
+  totalRatingPoints?: number;
+  fixedOdds?: {
+    returnWin: number;
+    returnPlace: number;
+    bettingStatus: string;
+  };
+  parimutuel?: {
+    returnWin: number;
+    returnPlace: number;
+  };
+}
+
+interface TabRaceDetail {
+  raceNumber: number;
+  raceName: string;
+  raceDistance: number;
+  raceStartTime: string;
+  raceStatus: string;
+  runners: TabRunner[];
+}
+
+interface TabNextToGoRace {
+  raceStartTime: string;
+  raceNumber: number;
+  raceName: string;
+  raceDistance: number;
+  meeting: {
+    raceType: string;
+    meetingName: string;
+    location: string;
+    venueMnemonic: string;
+    meetingDate: string;
+    weatherCondition?: string;
+    trackCondition?: string;
+  };
+  _links: {
+    self: string;
+  };
+}
+
+function transformTabRace(
+  ntgRace: TabNextToGoRace,
+  detail: TabRaceDetail
+): SportEvent & { runners: Runner[] } {
+  const runners: Runner[] = detail.runners
+    .filter(r => r.fixedOdds && r.fixedOdds.bettingStatus === 'Open' && r.fixedOdds.returnWin > 0)
+    .map(r => ({
+      name: r.runnerName,
+      number: r.runnerNumber,
+      barrier: r.barrierNumber,
+      jockey: r.riderDriverName || '',
+      trainer: r.trainerName || '',
+      weight: r.handicapWeight || 0,
+      form: r.last5Starts || '',
+      career: '',
+      winOdds: r.fixedOdds?.returnWin || 0,
+    }));
+
+  const odds: Record<string, number> = {};
+  for (const r of runners) {
+    odds[r.name] = r.winOdds;
+  }
+
+  return {
+    id: `horse-racing-${ntgRace.meeting.venueMnemonic.toLowerCase()}-r${ntgRace.raceNumber}`,
+    sport: 'Horse Racing',
+    event: `${ntgRace.meeting.meetingName} R${ntgRace.raceNumber} ${ntgRace.raceName}`,
+    teams: runners.map(r => r.name),
+    odds,
+    startTime: ntgRace.raceStartTime,
+    venue: `${ntgRace.meeting.meetingName} (${ntgRace.meeting.location})`,
+    runners,
+  };
+}
+
+async function fetchInBatches<T, R>(
+  items: T[],
+  fn: (item: T) => Promise<R | null>,
+  batchSize: number,
+  delayMs: number
+): Promise<(R | null)[]> {
+  const results: (R | null)[] = [];
+  for (let i = 0; i < items.length; i += batchSize) {
+    const batch = items.slice(i, i + batchSize);
+    const batchResults = await Promise.all(batch.map(fn));
+    results.push(...batchResults);
+    if (i + batchSize < items.length) {
+      await new Promise(resolve => setTimeout(resolve, delayMs));
+    }
+  }
+  return results;
+}
+
 function formatCountdown(ms: number): string {
   if (ms <= 0) return 'LIVE';
   const totalSec = Math.floor(ms / 1000);
@@ -61,7 +167,10 @@ interface AiPicksClientProps {
 // Same Race Multi selection: raceId -> runner names
 type SameRaceMulti = Record<string, Set<string>>;
 
-export default function AiPicksClient({ events, analyzed }: AiPicksClientProps) {
+export default function AiPicksClient({ events: serverEvents, analyzed }: AiPicksClientProps) {
+  const [tabEvents, setTabEvents] = useState<(SportEvent & { runners?: Runner[] })[]>([]);
+  const [tabLoading, setTabLoading] = useState(true);
+  const [tabError, setTabError] = useState<string | null>(null);
   const [sameRaceSelections, setSameRaceSelections] = useState<Record<string, string[]>>({});
   const [dailyMultiSelections, setDailyMultiSelections] = useState<Record<string, string>>({});
   const [analyzing, setAnalyzing] = useState(false);
@@ -70,9 +179,90 @@ export default function AiPicksClient({ events, analyzed }: AiPicksClientProps) 
   const [srmSuggestions, setSrmSuggestions] = useState<Record<string, SrmSuggestion>>({});
   const [srmLoading, setSrmLoading] = useState<Record<string, boolean>>({});
 
+  // Use TAB events if available, fall back to server events
+  const events = tabEvents.length > 0 ? tabEvents : serverEvents;
+
   useEffect(() => {
     const interval = setInterval(() => setNow(Date.now()), 1000);
     return () => clearInterval(interval);
+  }, []);
+
+  // Fetch races from TAB API client-side
+  useEffect(() => {
+    let cancelled = false;
+
+    async function fetchTabRaces() {
+      try {
+        setTabLoading(true);
+        setTabError(null);
+
+        // Fetch next-to-go races
+        const ntgRes = await fetch(
+          `${TAB_API}/racing/next-to-go/races?includeFixedOdds=true&jurisdiction=NSW`
+        );
+        if (!ntgRes.ok) throw new Error(`TAB API returned ${ntgRes.status}`);
+        const ntgData = await ntgRes.json();
+
+        // Filter: AU horse racing only, limit to 10
+        const horseRaces: TabNextToGoRace[] = (ntgData.races || [])
+          .filter((r: TabNextToGoRace) =>
+            r.meeting.raceType === 'R' && AU_STATES.has(r.meeting.location)
+          )
+          .slice(0, 10);
+
+        if (cancelled) return;
+
+        if (horseRaces.length === 0) {
+          setTabEvents([]);
+          setTabLoading(false);
+          return;
+        }
+
+        // Fetch race details in batches of 3 with 200ms delay
+        const details = await fetchInBatches(
+          horseRaces,
+          async (race) => {
+            try {
+              const detailRes = await fetch(race._links.self + '?returnPromo=true&returnOffers=true&jurisdiction=NSW');
+              if (!detailRes.ok) return null;
+              return (await detailRes.json()) as TabRaceDetail;
+            } catch {
+              return null;
+            }
+          },
+          3,
+          200
+        );
+
+        if (cancelled) return;
+
+        // Transform into SportEvent format
+        const transformed: (SportEvent & { runners?: Runner[] })[] = [];
+        for (let i = 0; i < horseRaces.length; i++) {
+          const detail = details[i];
+          if (!detail || !detail.runners) continue;
+          const event = transformTabRace(horseRaces[i], detail);
+          if (event.runners.length > 0) {
+            transformed.push(event);
+          }
+        }
+
+        if (!cancelled) {
+          setTabEvents(transformed);
+        }
+      } catch (err) {
+        if (!cancelled) {
+          setTabError(err instanceof Error ? err.message : 'Failed to fetch races');
+        }
+      } finally {
+        if (!cancelled) {
+          setTabLoading(false);
+        }
+      }
+    }
+
+    fetchTabRaces();
+    return () => { cancelled = true; };
   }, []);
 
   // Map analyzed events by event id for quick lookup
@@ -197,7 +387,7 @@ export default function AiPicksClient({ events, analyzed }: AiPicksClientProps) 
             <div>
               <h1 className="text-2xl font-bold">AI Race Picks</h1>
               <p className="text-white/70 text-sm mt-1">
-                {events.length} races today &middot; 3 AI models &middot; Consensus picks
+                {tabLoading ? 'Loading...' : `${events.length} races`} &middot; 3 AI models &middot; Consensus picks
               </p>
             </div>
             {!hasAnalysis && events.length > 0 && (
@@ -223,7 +413,27 @@ export default function AiPicksClient({ events, analyzed }: AiPicksClientProps) 
         <div className="grid lg:grid-cols-3 gap-6">
           {/* Main content - Race Cards */}
           <div className="lg:col-span-2 space-y-4">
-            {events.length === 0 && (
+            {tabLoading && (
+              <div className="bg-white rounded-lg border border-[#e5e5e5] p-12 text-center">
+                <div className="animate-pulse space-y-4">
+                  <div className="text-[#f47920] text-lg font-bold">Fetching live races from TAB...</div>
+                  <div className="space-y-3 max-w-md mx-auto">
+                    {[1, 2, 3].map(i => (
+                      <div key={i} className="h-16 bg-[#f0f2f5] rounded-lg" />
+                    ))}
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {!tabLoading && tabError && serverEvents.length === 0 && (
+              <div className="bg-white rounded-lg border border-[#e5e5e5] p-12 text-center text-[#999]">
+                <div className="text-red-500 font-bold mb-2">Could not fetch TAB races</div>
+                <div className="text-sm">{tabError}</div>
+              </div>
+            )}
+
+            {!tabLoading && events.length === 0 && !tabError && (
               <div className="bg-white rounded-lg border border-[#e5e5e5] p-12 text-center text-[#999]">
                 No race data available for today. Check back later.
               </div>
