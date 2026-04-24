@@ -4,8 +4,28 @@ import Link from "next/link";
 import "./globals.css";
 
 export const metadata: Metadata = {
+  metadataBase: new URL('https://sportbetizer.vercel.app'),
   title: "MilesRunsAI Sportsbetalizer",
   description: "3 AI Models. 1 Daily Multi. Real Money.",
+  icons: {
+    icon: [
+      { url: '/favicon-32x32.png', sizes: '32x32', type: 'image/png' },
+      { url: '/favicon-16x16.png', sizes: '16x16', type: 'image/png' },
+    ],
+    apple: '/apple-touch-icon.png',
+  },
+  openGraph: {
+    title: 'MilesRunsAI Sportsbetalizer',
+    description: '3 AI Models. 1 Daily Multi. Real Money.',
+    images: [{ url: '/og-image.jpg', width: 1200, height: 630 }],
+    type: 'website',
+  },
+  twitter: {
+    card: 'summary_large_image',
+    title: 'MilesRunsAI Sportsbetalizer',
+    description: '3 AI Models. 1 Daily Multi. Real Money.',
+    images: ['/og-image.jpg'],
+  },
 };
 
 function TopTickerBar() {
