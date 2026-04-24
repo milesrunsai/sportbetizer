@@ -281,6 +281,19 @@ export default function AiPicksClient({ events: serverEvents, analyzed }: AiPick
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [events.length]);
 
+  // Auto-fetch SRMs after analysis completes
+  useEffect(() => {
+    if (liveAnalyzed.length > 0 && Object.keys(srmSuggestions).length === 0) {
+      // Fetch SRMs for all analyzed events
+      for (const a of liveAnalyzed) {
+        if (!srmSuggestions[a.event.id] && !srmLoading[a.event.id]) {
+          fetchSrm(a.event);
+        }
+      }
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [liveAnalyzed.length]);
+
   async function fetchSrm(event: SportEvent) {
     setSrmLoading(prev => ({ ...prev, [event.id]: true }));
     try {
