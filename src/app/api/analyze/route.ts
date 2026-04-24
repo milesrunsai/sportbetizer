@@ -2,6 +2,7 @@ import { promises as fs } from 'fs';
 import path from 'path';
 import type { SportEvent, AnalyzedEvent, ModelPick } from '@/lib/types';
 import { saveTodayAnalysis } from '@/lib/data';
+import { enrichRaceWithRacenet, type RacenetProfile } from '@/lib/racenet';
 
 export const dynamic = 'force-dynamic';
 export const maxDuration = 60;
@@ -32,6 +33,26 @@ You may change your pick or stick with your original. Reply ONLY with valid JSON
 
 confidence is 1-10. Pick must be an exact runner name from the race data.`;
 
+function formatRacenetStats(profile: RacenetProfile): string {
+  const lines: string[] = [];
+  lines.push(`  Racenet Stats: ${profile.totalRuns} runs, ${profile.totalWins} wins (${profile.winPercentage}%), ${profile.placePercentage}% place rate, ${profile.totalPrizeMoney} prize money`);
+
+  if (profile.lastFiveRuns.length > 0) {
+    const runStrs = profile.lastFiveRuns.map(
+      (r) => `${r.finishPosition}/${r.totalStarters} at ${r.venue} (${r.distance}m) on ${r.date}`
+    );
+    lines.push(`  Last ${profile.lastFiveRuns.length} runs: ${runStrs.join('; ')}`);
+  }
+
+  const extras: string[] = [];
+  if (profile.trainer) extras.push(`Trainer: ${profile.trainer}`);
+  if (profile.age) extras.push(`Age: ${profile.age}`);
+  if (profile.sex) extras.push(`Sex: ${profile.sex}`);
+  if (extras.length > 0) lines.push(`  ${extras.join(' | ')}`);
+
+  return lines.join('\n');
+}
+
 function formatRaceForPrompt(event: SportEvent): string {
   const raceEvent = event as SportEvent & {
     runners?: Array<{
@@ -43,14 +64,19 @@ function formatRaceForPrompt(event: SportEvent): string {
       weight: number;
       form: string;
       winOdds: number;
+      racenetProfile?: RacenetProfile;
+      racenetEnriched?: boolean;
     }>;
   };
 
   if (raceEvent.runners && raceEvent.runners.length > 0) {
-    const lines = raceEvent.runners.map(
-      (r) =>
-        `#${r.number} ${r.name} | Jockey: ${r.jockey || 'N/A'} | Trainer: ${r.trainer || 'N/A'} | Barrier: ${r.barrier || 'N/A'} | Weight: ${r.weight ? r.weight + 'kg' : 'N/A'} | Form: ${r.form || 'N/A'} | WIN Odds: $${r.winOdds.toFixed(2)}`
-    );
+    const lines = raceEvent.runners.map((r) => {
+      let line = `#${r.number} ${r.name} | Jockey: ${r.jockey || 'N/A'} | Trainer: ${r.trainer || 'N/A'} | Barrier: ${r.barrier || 'N/A'} | Weight: ${r.weight ? r.weight + 'kg' : 'N/A'} | Form: ${r.form || 'N/A'} | WIN Odds: $${r.winOdds.toFixed(2)}`;
+      if (r.racenetProfile) {
+        line += '\n' + formatRacenetStats(r.racenetProfile);
+      }
+      return line;
+    });
     return `Race: ${raceEvent.event}\nVenue: ${raceEvent.venue}\nStart: ${raceEvent.startTime}\n\nRunners:\n${lines.join('\n')}`;
   }
 
@@ -337,6 +363,19 @@ export async function GET(request: Request) {
       },
       { status: 500 }
     );
+  }
+
+  // Enrich horse/greyhound races with Racenet profile data before LLM analysis
+  for (let i = 0; i < events.length; i++) {
+    const ev = events[i] as SportEvent & { runners?: Array<{ name: string; [key: string]: unknown }> };
+    if (ev.runners && ev.runners.length > 0 && (ev.sport === 'Horse Racing' || ev.sport === 'Greyhounds')) {
+      try {
+        const enriched = await enrichRaceWithRacenet(ev.runners);
+        (events[i] as unknown as Record<string, unknown>).runners = enriched;
+      } catch {
+        // Non-critical — continue with unenriched data
+      }
+    }
   }
 
   // Analyze races in batches of 3 to avoid rate limits

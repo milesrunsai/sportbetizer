@@ -1,6 +1,7 @@
 import { promises as fs } from 'fs';
 import path from 'path';
 import type { SportEvent } from '@/lib/types';
+import { enrichRaceWithRacenet } from '@/lib/racenet';
 
 export const dynamic = 'force-dynamic';
 
@@ -279,6 +280,19 @@ export async function GET() {
   events.sort(
     (a, b) => new Date(a.startTime).getTime() - new Date(b.startTime).getTime()
   );
+
+  // Enrich horse/greyhound runners with Racenet profile data
+  for (let i = 0; i < events.length; i++) {
+    const ev = events[i] as SportEvent & { runners?: Array<{ name: string; [key: string]: unknown }> };
+    if (ev.runners && ev.runners.length > 0 && (ev.sport === 'Horse Racing' || ev.sport === 'Greyhounds')) {
+      try {
+        const enriched = await enrichRaceWithRacenet(ev.runners);
+        (events[i] as unknown as Record<string, unknown>).runners = enriched;
+      } catch {
+        // Non-critical — continue with unenriched data
+      }
+    }
+  }
 
   // Cache to data/today-races.json
   try {
