@@ -138,91 +138,101 @@ async function discoverRacesFromFormGuide(
 
 /**
  * Parse runner data from a Racenet form guide HTML page.
+ * Strategy: Find selection-row-desktop blocks, extract text content, parse structured data.
  */
 function parseRunners(html: string): RacenetRunner[] {
   const runners: RacenetRunner[] = [];
   const seenNumbers = new Set<number>();
 
-  // Find all horseracing-selection-details blocks
-  const detailBlocks = html.split('horseracing-selection-details');
+  // Extract text content from HTML by stripping tags
+  function stripTags(s: string): string {
+    return s.replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim();
+  }
 
-  for (let i = 1; i < detailBlocks.length; i++) {
-    const block = detailBlocks[i];
-    // Get a reasonable chunk to parse
-    const chunk = block.substring(0, 3000);
+  // Find runner rows by looking for the pattern: number. HorseName (barrier)
+  // This pattern appears in the actual rendered content
+  const runnerPattern = />(\d{1,2})\. ([A-Z][A-Za-z'\s]+?)(?:\s*<[^>]*>)*\s*\((\d{1,2})\)/g;
+  let runnerMatch;
+  while ((runnerMatch = runnerPattern.exec(html)) !== null) {
+    const num = parseInt(runnerMatch[1], 10);
+    if (seenNumbers.has(num)) continue;
+    seenNumbers.add(num);
 
-    // Runner number - look for a number before the name
-    const numMatch = chunk.match(/(?:^|>)\s*(\d{1,2})\s*[.<\s]/);
-    const runnerNum = numMatch ? parseInt(numMatch[1], 10) : 0;
-
-    // Dedupe mobile/desktop duplicates
-    if (runnerNum > 0 && seenNumbers.has(runnerNum)) continue;
-    if (runnerNum > 0) seenNumbers.add(runnerNum);
-
-    // Runner name - typically in a heading or strong tag near the start
-    const nameMatch = chunk.match(/>([A-Z][A-Z\s']+(?:\([^)]*\))?)\s*</);
-    let name = nameMatch ? nameMatch[1].trim() : '';
-    // Clean up - remove barrier in parens from name
-    name = name.replace(/\s*\(\d+\)\s*$/, '').trim();
+    const name = runnerMatch[2].trim();
+    const barrier = parseInt(runnerMatch[3], 10);
     if (!name || name.length < 2) continue;
 
-    // Barrier
-    const barrierMatch = chunk.match(/\((\d{1,2})\)/);
-    const barrier = barrierMatch ? parseInt(barrierMatch[1], 10) : 0;
+    // Get surrounding context for this runner (next 2000 chars)
+    const ctx = html.substring(runnerMatch.index, runnerMatch.index + 2000);
+    const ctxText = stripTags(ctx);
 
     // Trainer after T:
-    const trainerMatch = chunk.match(/T:\s*([^<\n]+)/);
-    const trainer = trainerMatch ? trainerMatch[1].trim() : '';
+    const trainerMatch = ctxText.match(/T:\s*([A-Z][^JC\n]{2,30})/);
+    let trainer = trainerMatch ? trainerMatch[1].trim() : '';
+    // Remove duplicate trainer names ("R Schiffer R Schiffer")
+    const trainerParts = trainer.split(/\s{2,}/);
+    if (trainerParts.length > 1) trainer = trainerParts[0];
 
     // Jockey after J:
-    const jockeyMatch = chunk.match(/J:\s*([^<\n]+)/);
+    const jockeyMatch = ctxText.match(/J:\s*([A-Z][^(\n]{2,25})/);
     const jockey = jockeyMatch ? jockeyMatch[1].trim() : '';
 
-    // Weight in parens like (58kg) or (58.5kg)
-    const weightMatch = chunk.match(/\((\d+(?:\.\d+)?)kg\)/);
+    // Weight in parens like (58kg)
+    const weightMatch = ctxText.match(/(\d+(?:\.\d+)?)kg/);
     const weight = weightMatch ? parseFloat(weightMatch[1]) : 0;
 
     // Form after L10:
-    const formMatch = chunk.match(/L10:\s*([^\s<]+)/);
+    const formMatch = ctxText.match(/L10:\s*([^\s]+)/);
     const form = formMatch ? formMatch[1].trim() : '';
 
     // Career after C:
-    const careerMatch = chunk.match(/C:\s*([^\s<]+)/);
+    const careerMatch = ctxText.match(/C:\s*(\d+:[\d-]+)/);
     const career = careerMatch ? careerMatch[1].trim() : '';
 
     runners.push({
       name,
-      number: runnerNum,
+      number: num,
       barrier,
       jockey,
       trainer,
       weight,
       form,
       career,
-      winOdds: 0, // Will be filled from odds elements
+      winOdds: 0,
     });
   }
 
-  // Parse odds from odds-link elements (look for dollar amounts in the field card area)
-  // Use a more specific pattern to avoid matching CSS
+  // Parse odds: look for $X.XX values in odds-link elements
   const oddsRegex = /class="[^"]*odds-link__odds[^"]*"[^>]*>\s*\$([\d.]+)/g;
-  const oddsValues: number[] = [];
+  const allOdds: number[] = [];
   let oddsMatch;
   while ((oddsMatch = oddsRegex.exec(html)) !== null) {
     const val = parseFloat(oddsMatch[1]);
-    if (val > 0) oddsValues.push(val);
+    if (val > 0 && val < 1000) allOdds.push(val);
   }
 
-  // Odds may be duplicated (mobile/desktop) - take first half if doubled
-  const expectedCount = runners.length;
-  const odds =
-    oddsValues.length >= expectedCount * 2
-      ? oddsValues.slice(0, expectedCount)
-      : oddsValues;
+  // The odds appear in runner order, but may be duplicated for mobile/desktop
+  // Also there may be multiple bookmaker odds per runner (TAB, CrownBet, best)
+  // Take unique odds in groups matching runner count
+  const oddsPerRunner = runners.length > 0 ? Math.floor(allOdds.length / runners.length) : 0;
+  for (let i = 0; i < runners.length; i++) {
+    // First odds value for this runner (best odds)
+    const oddsIdx = i * (oddsPerRunner || 1);
+    if (oddsIdx < allOdds.length) {
+      runners[i].winOdds = allOdds[oddsIdx];
+    }
+  }
 
-  // Assign odds to runners in order
-  for (let i = 0; i < runners.length && i < odds.length; i++) {
-    runners[i].winOdds = odds[i];
+  // If no odds found from HTML elements, try $X.XX near each runner name
+  if (allOdds.length === 0) {
+    for (const runner of runners) {
+      const nameIdx = html.indexOf(`>${runner.name}<`);
+      if (nameIdx > 0) {
+        const nearby = html.substring(nameIdx, nameIdx + 1000);
+        const priceMatch = nearby.match(/\$(\d+\.\d{2})/);
+        if (priceMatch) runner.winOdds = parseFloat(priceMatch[1]);
+      }
+    }
   }
 
   return runners;
