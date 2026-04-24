@@ -4,8 +4,13 @@ import { getBankroll, getResults } from '@/lib/db';
 export const dynamic = 'force-dynamic';
 
 export async function GET() {
-  const bankroll = await getBankroll();
-  const results = await getResults();
+  let bankroll, results;
+  try {
+    bankroll = await getBankroll();
+    results = await getResults();
+  } catch (e) {
+    return NextResponse.json({ error: 'Database not configured', detail: String(e) }, { status: 503 });
+  }
 
   const wins = results.filter((r) => r.result === 'won').length;
   const losses = results.filter((r) => r.result === 'lost').length;
