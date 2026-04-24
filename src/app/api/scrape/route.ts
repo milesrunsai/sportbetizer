@@ -4,14 +4,34 @@ import type { SportEvent } from '@/lib/types';
 
 export const dynamic = 'force-dynamic';
 
-const RACENET_HEADERS = {
+const BASE_HEADERS: Record<string, string> = {
   'User-Agent':
     'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36',
   Accept: 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
+  'Accept-Language': 'en-AU,en;q=0.9',
 };
 
 const RACES_FILE = path.join(process.cwd(), 'data', 'today-races.json');
 const MAX_RACES = 15;
+
+// Cookie jar for Racenet's redirect chain
+const cookieJar = new Map<string, string>();
+
+function parseCookies(setCookie: string | null) {
+  if (!setCookie) return;
+  const parts = setCookie.split(/,(?=\s*\w+=)/);
+  for (const part of parts) {
+    const nameVal = part.trim().split(';')[0];
+    const eqIdx = nameVal.indexOf('=');
+    if (eqIdx > 0) {
+      cookieJar.set(nameVal.substring(0, eqIdx), nameVal.substring(eqIdx + 1));
+    }
+  }
+}
+
+function cookieHeader(): string {
+  return Array.from(cookieJar.entries()).map(([k, v]) => `${k}=${v}`).join('; ');
+}
 
 interface RacenetRunner {
   name: string;
@@ -28,10 +48,39 @@ interface RacenetRunner {
 /**
  * Fetch HTML from a URL with Racenet headers.
  */
+/**
+ * Fetch HTML from Racenet with cookie-based redirect handling.
+ * Racenet has a multi-step redirect chain:
+ * 1. 302 → /remote/check_cookie.html (sets n_regis cookie)
+ * 2. 302 → back to original URL
+ * 3. 302 → tags.news.com.au (sets nk token)
+ * 4. 302 → original URL with ?nk= param
+ * 5. 200 → actual HTML
+ */
 async function fetchHTML(url: string): Promise<string> {
-  const res = await fetch(url, { headers: RACENET_HEADERS, cache: 'no-store', redirect: 'follow' });
-  if (!res.ok) throw new Error(`${url} returned ${res.status}`);
-  return res.text();
+  let currentUrl = url;
+  for (let i = 0; i < 10; i++) {
+    const headers: Record<string, string> = { ...BASE_HEADERS };
+    if (cookieJar.size > 0) headers['Cookie'] = cookieHeader();
+
+    const res = await fetch(currentUrl, { headers, redirect: 'manual', cache: 'no-store' });
+    parseCookies(res.headers.get('set-cookie'));
+
+    if (res.status >= 300 && res.status < 400) {
+      const loc = res.headers.get('location');
+      if (!loc) throw new Error(`Redirect without location at ${currentUrl}`);
+      currentUrl = loc.startsWith('http') ? loc : new URL(loc, currentUrl).href;
+      // Skip external redirects (news.com.au tag generator), retry original
+      if (!currentUrl.includes('racenet.com.au')) {
+        currentUrl = url;
+      }
+      continue;
+    }
+
+    if (res.ok) return res.text();
+    throw new Error(`${url} returned ${res.status}`);
+  }
+  throw new Error(`Too many redirects for ${url}`);
 }
 
 /**
@@ -154,13 +203,14 @@ function parseRunners(html: string): RacenetRunner[] {
     });
   }
 
-  // Parse odds separately from odds-link__odds elements
-  const oddsRegex = /odds-link__odds[^>]*>([^<]*)</g;
+  // Parse odds from odds-link elements (look for dollar amounts in the field card area)
+  // Use a more specific pattern to avoid matching CSS
+  const oddsRegex = /class="[^"]*odds-link__odds[^"]*"[^>]*>\s*\$([\d.]+)/g;
   const oddsValues: number[] = [];
   let oddsMatch;
   while ((oddsMatch = oddsRegex.exec(html)) !== null) {
-    const val = oddsMatch[1].replace(/[^0-9.]/g, '');
-    if (val) oddsValues.push(parseFloat(val));
+    const val = parseFloat(oddsMatch[1]);
+    if (val > 0) oddsValues.push(val);
   }
 
   // Odds may be duplicated (mobile/desktop) - take first half if doubled
@@ -186,11 +236,33 @@ function extractStartTime(html: string): string {
   const jsonLdMatch = html.match(/<script[^>]*type="application\/ld\+json"[^>]*>([\s\S]*?)<\/script>/);
   if (jsonLdMatch) {
     try {
-      const data = JSON.parse(jsonLdMatch[1]);
-      const events = Array.isArray(data) ? data : [data];
+      const raw = JSON.parse(jsonLdMatch[1]);
+      // May be nested: {"@graph": [[{...}]]} or just {...}
+      const flatten = (obj: unknown): unknown[] => {
+        if (Array.isArray(obj)) return obj.flatMap(flatten);
+        if (typeof obj === 'object' && obj !== null) {
+          if ('@graph' in obj) return flatten((obj as Record<string, unknown>)['@graph']);
+          return [obj];
+        }
+        return [];
+      };
+      const events = flatten(raw);
       for (const ev of events) {
-        if (ev['@type'] === 'SportsEvent' && ev.startDate) {
-          return new Date(ev.startDate).toISOString();
+        const e = ev as Record<string, unknown>;
+        if (e['@type'] === 'SportsEvent' && e.startDate) {
+          const dateStr = String(e.startDate);
+          // Racenet format: "24/04/2026 05:30:00 AM" (UTC)
+          const parts = dateStr.match(/(\d{2})\/(\d{2})\/(\d{4})\s+(\d{1,2}):(\d{2}):(\d{2})\s*(AM|PM)/i);
+          if (parts) {
+            let hours = parseInt(parts[4], 10);
+            if (parts[7].toUpperCase() === 'PM' && hours < 12) hours += 12;
+            if (parts[7].toUpperCase() === 'AM' && hours === 12) hours = 0;
+            const isoStr = `${parts[3]}-${parts[2]}-${parts[1]}T${String(hours).padStart(2, '0')}:${parts[5]}:${parts[6]}Z`;
+            return isoStr;
+          }
+          // Try direct parse
+          const d = new Date(dateStr);
+          if (!isNaN(d.getTime())) return d.toISOString();
         }
       }
     } catch {
@@ -227,11 +299,21 @@ function extractVenue(html: string, meetingKey: string): string {
   const jsonLdMatch = html.match(/<script[^>]*type="application\/ld\+json"[^>]*>([\s\S]*?)<\/script>/);
   if (jsonLdMatch) {
     try {
-      const data = JSON.parse(jsonLdMatch[1]);
-      const events = Array.isArray(data) ? data : [data];
+      const raw = JSON.parse(jsonLdMatch[1]);
+      const flatten = (obj: unknown): unknown[] => {
+        if (Array.isArray(obj)) return obj.flatMap(flatten);
+        if (typeof obj === 'object' && obj !== null) {
+          if ('@graph' in obj) return flatten((obj as Record<string, unknown>)['@graph']);
+          return [obj];
+        }
+        return [];
+      };
+      const events = flatten(raw);
       for (const ev of events) {
-        if (ev['@type'] === 'SportsEvent' && ev.location?.name) {
-          return ev.location.name;
+        const e = ev as Record<string, unknown>;
+        if (e['@type'] === 'SportsEvent') {
+          const loc = e.location as Record<string, unknown> | undefined;
+          if (loc?.name) return String(loc.name);
         }
       }
     } catch {
