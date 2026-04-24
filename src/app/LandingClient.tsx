@@ -70,7 +70,7 @@ export default function LandingClient({ bankroll, results }: LandingClientProps)
     Promise.all([
       fetch('/api/multi').then((r) => r.json()),
       fetch('/api/analyze').then((r) => r.json()),
-      fetch('/api/scrape').then((r) => r.json()),
+      fetch('/api/races').then((r) => r.json()),
     ])
       .then(([multiData, analyzeData, scrapeData]) => {
         setMulti(multiData.multi);

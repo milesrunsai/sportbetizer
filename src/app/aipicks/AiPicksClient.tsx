@@ -273,6 +273,14 @@ export default function AiPicksClient({ events: serverEvents, analyzed }: AiPick
     setAnalyzing(false);
   }
 
+  // Auto-run analysis when we have events but no analysis
+  useEffect(() => {
+    if (events.length > 0 && liveAnalyzed.length === 0 && !analyzing) {
+      runAnalysis();
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [events.length]);
+
   async function fetchSrm(event: SportEvent) {
     setSrmLoading(prev => ({ ...prev, [event.id]: true }));
     try {
