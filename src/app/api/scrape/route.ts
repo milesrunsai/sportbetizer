@@ -569,11 +569,7 @@ export async function GET() {
     // Fall through to mock
   }
 
-  // 2. Fallback: mock data only if scrape returned nothing
-  if (events.length === 0) {
-    events = getMockEvents();
-    source = 'mock';
-  }
+  // No mock fallback — show empty state if no live races available
 
   // Sort by start time
   events.sort(
@@ -581,9 +577,7 @@ export async function GET() {
   );
 
   // Save fresh data to DB so /aipicks page gets it
-  if (source === 'live') {
-    await saveToDb(events);
-  }
+  await saveToDb(events);
 
   // Cache to local file (non-critical)
   try {
