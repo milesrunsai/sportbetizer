@@ -408,8 +408,9 @@ async function scrapeRace(
 /**
  * Main Racenet scraper: discover meetings, scrape races, return SportEvents.
  */
-async function scrapeRacenet(): Promise<SportEvent[]> {
+async function scrapeRacenet(debugLog: string[] = []): Promise<SportEvent[]> {
   const links = await discoverMeetingLinks();
+  debugLog.push(`Homepage: ${links.length} links`);
   if (links.length === 0) return [];
 
   const meetings = groupByMeeting(links);
@@ -446,7 +447,13 @@ async function scrapeRacenet(): Promise<SportEvent[]> {
     for (let i = 0; i < toScrape.length; i += 3) {
       const batch = toScrape.slice(i, i + 3);
       const results = await Promise.all(
-        batch.map((url) => scrapeRace(url, meetingKey).catch(() => null))
+        batch.map((url) => scrapeRace(url, meetingKey).then(ev => {
+            debugLog.push(`OK: ${url.substring(0, 60)} -> ${ev ? ev.teams.length + ' runners' : 'null'}`);
+            return ev;
+          }).catch((e) => {
+            debugLog.push(`FAIL: ${url.substring(0, 60)} -> ${String(e).substring(0, 100)}`);
+            return null;
+          }))
       );
       for (const ev of results) {
         if (ev) {
@@ -536,16 +543,9 @@ export async function GET() {
   let source: 'live' | 'mock' = 'live';
 
   let error: string | undefined;
-  let debugInfo: string | undefined;
+  const debugLog: string[] = [];
   try {
-    const links = await discoverMeetingLinks();
-    debugInfo = `Found ${links.length} links`;
-    if (links.length > 0) {
-      debugInfo += `: ${links[0]}`;
-    }
-    if (links.length > 0) {
-      events = await scrapeRacenet();
-    }
+    events = await scrapeRacenet(debugLog);
   } catch (e) {
     error = String(e);
   }
@@ -572,7 +572,7 @@ export async function GET() {
   }
 
   return Response.json(
-    { events, count: events.length, source, ...(error ? { error } : {}), ...(debugInfo ? { debug: debugInfo } : {}) },
+    { events, count: events.length, source, ...(error ? { error } : {}), debug: debugLog },
     {
       headers: {
         'Cache-Control': 'no-cache, no-store, must-revalidate',
