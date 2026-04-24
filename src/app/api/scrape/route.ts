@@ -15,22 +15,6 @@ const BASE_HEADERS: Record<string, string> = {
 const RACES_FILE = path.join(process.cwd(), 'data', 'today-races.json');
 const MAX_RACES = 15;
 
-async function fetchFromDb(): Promise<{ events: SportEvent[]; scrapedAt: string; count: number } | null> {
-  const url = process.env.DATABASE_URL;
-  if (!url) return null;
-  try {
-    const sql = neon(url);
-    const today = new Date().toISOString().split('T')[0];
-    const rows = await sql`SELECT data FROM races WHERE race_date = ${today} LIMIT 1`;
-    if (rows.length === 0) return null;
-    const data = typeof rows[0].data === 'string' ? JSON.parse(rows[0].data) : rows[0].data;
-    if (data?.events && data.events.length > 0) return data;
-    return null;
-  } catch {
-    return null;
-  }
-}
-
 // Cookie jar for Racenet's redirect chain
 const cookieJar = new Map<string, string>();
 
@@ -559,27 +543,33 @@ function getMockEvents(): SportEvent[] {
   ];
 }
 
+async function saveToDb(events: SportEvent[]): Promise<void> {
+  const url = process.env.DATABASE_URL;
+  if (!url || events.length === 0) return;
+  try {
+    const sql = neon(url);
+    const today = new Date().toISOString().split('T')[0];
+    const data = JSON.stringify({ events, scrapedAt: new Date().toISOString(), count: events.length });
+    await sql`INSERT INTO races (race_date, data) VALUES (${today}, ${data}::jsonb) ON CONFLICT (race_date) DO UPDATE SET data = ${data}::jsonb`;
+    // Clear stale analysis since races have changed
+    await sql`DELETE FROM today_analysis WHERE date = ${today}`;
+  } catch {
+    // Non-critical if DB write fails
+  }
+}
+
 export async function GET() {
   let events: SportEvent[] = [];
   let source: 'live' | 'mock' = 'live';
 
-  // 1. Try reading from DB first
-  const dbData = await fetchFromDb();
-  if (dbData && dbData.events.length > 0) {
-    events = dbData.events;
-    source = 'live';
+  // 1. Always scrape fresh from Racenet
+  try {
+    events = await scrapeRacenet();
+  } catch {
+    // Fall through to mock
   }
 
-  // 2. Fallback: scrape Racenet
-  if (events.length === 0) {
-    try {
-      events = await scrapeRacenet();
-    } catch {
-      // Fall through to mock
-    }
-  }
-
-  // 3. Final fallback: mock data
+  // 2. Fallback: mock data only if scrape returned nothing
   if (events.length === 0) {
     events = getMockEvents();
     source = 'mock';
@@ -590,7 +580,12 @@ export async function GET() {
     (a, b) => new Date(a.startTime).getTime() - new Date(b.startTime).getTime()
   );
 
-  // Cache to data/today-races.json
+  // Save fresh data to DB so /aipicks page gets it
+  if (source === 'live') {
+    await saveToDb(events);
+  }
+
+  // Cache to local file (non-critical)
   try {
     await fs.writeFile(
       RACES_FILE,
