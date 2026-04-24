@@ -1,37 +1,32 @@
-import { promises as fs } from 'fs';
-import path from 'path';
+import { neon } from '@neondatabase/serverless';
 import type { SportEvent, AnalyzedEvent } from '@/lib/types';
 import { saveTodayAnalysis } from '@/lib/db';
-import { enrichRaceWithRacenet } from '@/lib/racenet';
 import { analyzeEventWithAI } from '@/lib/ai';
 
 export const dynamic = 'force-dynamic';
 export const maxDuration = 60;
 
-export async function GET(request: Request) {
-  // Fetch events from scrape endpoint
-  const url = new URL(request.url);
-  const baseUrl = `${url.protocol}//${url.host}`;
-
-  let events: SportEvent[];
+export async function GET() {
+  // Read race data from DB
+  let events: SportEvent[] = [];
+  const dbUrl = process.env.DATABASE_URL;
+  if (!dbUrl) {
+    return Response.json({ error: 'DATABASE_URL not set' }, { status: 500 });
+  }
   try {
-    const res = await fetch(`${baseUrl}/api/scrape`, { cache: 'no-store' });
-    const data = await res.json();
-    events = data.events;
-  } catch {
-    // Try loading cached file
-    try {
-      const raw = await fs.readFile(
-        path.join(process.cwd(), 'data', 'today-races.json'),
-        'utf-8'
-      );
-      events = JSON.parse(raw).events;
-    } catch {
-      return Response.json(
-        { error: 'No race data available. Run /api/scrape first.' },
-        { status: 500 }
-      );
+    const sql = neon(dbUrl);
+    const today = new Date().toISOString().split('T')[0];
+    const rows = await sql`SELECT data FROM races WHERE race_date = ${today} LIMIT 1`;
+    if (rows.length > 0) {
+      const data = typeof rows[0].data === 'string' ? JSON.parse(rows[0].data) : rows[0].data;
+      events = data?.events || [];
     }
+  } catch {
+    return Response.json({ error: 'Failed to read race data from DB' }, { status: 500 });
+  }
+
+  if (events.length === 0) {
+    return Response.json({ error: 'No race data available.' }, { status: 500 });
   }
 
   // Check if any API keys are configured
@@ -50,21 +45,8 @@ export async function GET(request: Request) {
     );
   }
 
-  // Enrich horse/greyhound races with Racenet profile data before LLM analysis
-  for (let i = 0; i < events.length; i++) {
-    const ev = events[i] as SportEvent & { runners?: Array<{ name: string; [key: string]: unknown }> };
-    if (ev.runners && ev.runners.length > 0 && (ev.sport === 'Horse Racing' || ev.sport === 'Greyhounds')) {
-      try {
-        const enriched = await enrichRaceWithRacenet(ev.runners);
-        (events[i] as unknown as Record<string, unknown>).runners = enriched;
-      } catch {
-        // Non-critical — continue with unenriched data
-      }
-    }
-  }
-
-  // Analyze races in batches of 3 to avoid rate limits
-  const batchSize = 3;
+  // Analyze races in batches of 2 to stay within timeout
+  const batchSize = 2;
   const results: (AnalyzedEvent | null)[] = [];
 
   for (let i = 0; i < events.length; i += batchSize) {
