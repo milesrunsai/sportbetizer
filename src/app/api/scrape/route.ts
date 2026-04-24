@@ -29,7 +29,7 @@ interface RacenetRunner {
  * Fetch HTML from a URL with Racenet headers.
  */
 async function fetchHTML(url: string): Promise<string> {
-  const res = await fetch(url, { headers: RACENET_HEADERS, cache: 'no-store' });
+  const res = await fetch(url, { headers: RACENET_HEADERS, cache: 'no-store', redirect: 'follow' });
   if (!res.ok) throw new Error(`${url} returned ${res.status}`);
   return res.text();
 }
@@ -453,10 +453,11 @@ export async function GET() {
   let events: SportEvent[] = [];
   let source: 'live' | 'mock' = 'live';
 
+  let error: string | undefined;
   try {
     events = await scrapeRacenet();
-  } catch {
-    // Racenet scraping failed
+  } catch (e) {
+    error = String(e);
   }
 
   // If still empty, use mock data
@@ -481,7 +482,7 @@ export async function GET() {
   }
 
   return Response.json(
-    { events, count: events.length, source },
+    { events, count: events.length, source, ...(error ? { error } : {}) },
     {
       headers: {
         'Cache-Control': 'no-cache, no-store, must-revalidate',
