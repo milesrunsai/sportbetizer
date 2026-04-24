@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
+import Image from "next/image";
 import Link from "next/link";
 import "./globals.css";
 
@@ -23,7 +24,7 @@ function Header() {
     <header className="border-b border-zinc-800 bg-zinc-950/80 backdrop-blur-md sticky top-0 z-50">
       <div className="max-w-6xl mx-auto px-4 h-14 flex items-center justify-between">
         <Link href="/" className="flex items-center gap-2">
-          <span className="text-green-500 font-bold text-lg tracking-tight">SPORTSBETALIZER</span>
+          <Image src="/logo.jpg" alt="MilesRunsAI" width={160} height={40} className="h-8 w-auto" priority />
         </Link>
         <nav className="flex items-center gap-1 text-sm">
           <Link
