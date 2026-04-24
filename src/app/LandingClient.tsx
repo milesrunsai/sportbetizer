@@ -67,24 +67,18 @@ export default function LandingClient({ bankroll, results }: LandingClientProps)
   }, []);
 
   useEffect(() => {
-    Promise.all([
-      fetch('/api/multi').then((r) => r.json()),
-      fetch('/api/analyze').then((r) => r.json()),
-      fetch('/api/races').then((r) => r.json()),
-    ])
-      .then(([multiData, analyzeData, scrapeData]) => {
-        setMulti(multiData.multi);
-        setAnalyzed(analyzeData.analyzed || []);
-
+    // Load races first (fast), then multi+analyze in background
+    fetch('/api/races').then(r => r.json()).then(scrapeData => {
         const events = scrapeData.events || [];
         const horses: NextRace[] = [];
         const dogs: NextRace[] = [];
         const harness: NextRace[] = [];
 
         for (const ev of events) {
-          const raceMatch = ev.event.match(/Race\s+(\d+)/i);
+          // Match both "Race 8" and "VENUE R8 NAME" formats
+          const raceMatch = ev.event.match(/Race\s+(\d+)/i) || ev.event.match(/\bR(\d+)\b/);
           const race = raceMatch ? `R${raceMatch[1]}` : '';
-          const track = (ev.venue || '').split(',')[0].trim() || ev.event.split(' ').slice(0, 2).join(' ');
+          const track = (ev.venue || '').split('(')[0].trim().split(',')[0].trim() || ev.event.split(' ')[0];
           const entry = { track, race, startTime: ev.startTime };
 
           const sport = (ev.sport || '').toLowerCase();
@@ -107,6 +101,10 @@ export default function LandingClient({ bankroll, results }: LandingClientProps)
         setLoading(false);
       })
       .catch(() => setLoading(false));
+
+    // Load multi and analyze in background (don't block page)
+    fetch('/api/multi').then(r => r.json()).then(d => setMulti(d.multi)).catch(() => {});
+    fetch('/api/analyze').then(r => r.json()).then(d => setAnalyzed(d.analyzed || [])).catch(() => {});
   }, []);
 
   const pnl = bankroll.currentBalance - bankroll.startingBalance;
