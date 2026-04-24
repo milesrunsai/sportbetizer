@@ -1,4 +1,4 @@
-import { getBankroll, getResults } from '@/lib/data';
+import { getBankroll, getResults } from '@/lib/db';
 import LandingClient from './LandingClient';
 
 export const dynamic = 'force-dynamic';
