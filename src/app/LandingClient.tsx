@@ -12,10 +12,28 @@ interface LandingClientProps {
   results: ResultEntry[];
 }
 
-function CountdownPill({ time }: { time: string }) {
+function formatCountdown(ms: number): string {
+  if (ms <= 0) return 'LIVE';
+  const totalSec = Math.floor(ms / 1000);
+  const mins = Math.floor(totalSec / 60);
+  const secs = totalSec % 60;
+  if (mins >= 60) {
+    const hrs = Math.floor(mins / 60);
+    const remainMins = mins % 60;
+    return `${hrs}h ${remainMins.toString().padStart(2, '0')}m`;
+  }
+  return `${mins}m ${secs.toString().padStart(2, '0')}s`;
+}
+
+function CountdownPill({ startTime, now }: { startTime: string; now: number }) {
+  const diff = new Date(startTime).getTime() - now;
+  const isLive = diff <= 0;
+  const text = formatCountdown(diff);
   return (
-    <span className="bg-[#1a1a1a] text-[#f47920] text-[10px] font-bold px-1.5 py-0.5 rounded">
-      {time}
+    <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded ${
+      isLive ? 'bg-red-600 text-white animate-pulse' : 'bg-[#1a1a1a] text-[#f47920]'
+    }`}>
+      {text}
     </span>
   );
 }
@@ -28,19 +46,64 @@ function SkyBadge() {
   );
 }
 
+interface NextRace {
+  track: string;
+  race: string;
+  startTime: string;
+}
+
 export default function LandingClient({ bankroll, results }: LandingClientProps) {
   const [multi, setMulti] = useState<DailyMulti | null>(null);
   const [analyzed, setAnalyzed] = useState<AnalyzedEvent[]>([]);
   const [loading, setLoading] = useState(true);
+  const [nextHorses, setNextHorses] = useState<NextRace[]>([]);
+  const [nextDogs, setNextDogs] = useState<NextRace[]>([]);
+  const [nextHarness, setNextHarness] = useState<NextRace[]>([]);
+  const [now, setNow] = useState(Date.now());
+
+  useEffect(() => {
+    const interval = setInterval(() => setNow(Date.now()), 1000);
+    return () => clearInterval(interval);
+  }, []);
 
   useEffect(() => {
     Promise.all([
       fetch('/api/multi').then((r) => r.json()),
       fetch('/api/analyze').then((r) => r.json()),
+      fetch('/api/scrape').then((r) => r.json()),
     ])
-      .then(([multiData, analyzeData]) => {
+      .then(([multiData, analyzeData, scrapeData]) => {
         setMulti(multiData.multi);
         setAnalyzed(analyzeData.analyzed || []);
+
+        const events = scrapeData.events || [];
+        const horses: NextRace[] = [];
+        const dogs: NextRace[] = [];
+        const harness: NextRace[] = [];
+
+        for (const ev of events) {
+          const raceMatch = ev.event.match(/Race\s+(\d+)/i);
+          const race = raceMatch ? `R${raceMatch[1]}` : '';
+          const track = (ev.venue || '').split(',')[0].trim() || ev.event.split(' ').slice(0, 2).join(' ');
+          const entry = { track, race, startTime: ev.startTime };
+
+          const sport = (ev.sport || '').toLowerCase();
+          if (sport.includes('greyhound') || sport.includes('dog')) {
+            dogs.push(entry);
+          } else if (sport.includes('harness')) {
+            harness.push(entry);
+          } else {
+            horses.push(entry);
+          }
+        }
+
+        // Sort by start time and take top 5
+        const sortByTime = (a: NextRace, b: NextRace) =>
+          new Date(a.startTime).getTime() - new Date(b.startTime).getTime();
+        setNextHorses(horses.sort(sortByTime).slice(0, 5));
+        setNextDogs(dogs.sort(sortByTime).slice(0, 5));
+        setNextHarness(harness.sort(sortByTime).slice(0, 5));
+
         setLoading(false);
       })
       .catch(() => setLoading(false));
@@ -53,28 +116,6 @@ export default function LandingClient({ bankroll, results }: LandingClientProps)
 
   const consensusPicks = analyzed.filter((a) => a.consensus === 'AGREE');
   const highConfPicks = consensusPicks.filter((a) => a.confidenceLevel === 'high');
-
-  const nextHorses = [
-    { track: 'Flemington', race: 'R4', time: '4m 37s' },
-    { track: 'Randwick', race: 'R6', time: '15m 44s' },
-    { track: 'Caulfield', race: 'R5', time: '22m 11s' },
-    { track: 'Eagle Farm', race: 'R3', time: '33m 47s' },
-    { track: 'Moonee Valley', race: 'R7', time: '45m 02s' },
-  ];
-  const nextDogs = [
-    { track: 'Sandown', race: 'R7', time: '8m 12s' },
-    { track: 'Wentworth Park', race: 'R2', time: '18m 30s' },
-    { track: 'The Meadows', race: 'R8', time: '29m 03s' },
-    { track: 'Dapto', race: 'R4', time: '36m 15s' },
-    { track: 'Cannington', race: 'R5', time: '42m 50s' },
-  ];
-  const nextHarness = [
-    { track: 'Menangle', race: 'R3', time: '12m 05s' },
-    { track: 'Albion Park', race: 'R1', time: '25m 58s' },
-    { track: 'Gloucester Park', race: 'R6', time: '38m 22s' },
-    { track: 'Melton', race: 'R2', time: '47m 33s' },
-    { track: 'Addington', race: 'R4', time: '55m 10s' },
-  ];
 
   return (
     <div className="max-w-7xl mx-auto px-4 py-4">
@@ -192,18 +233,22 @@ export default function LandingClient({ bankroll, results }: LandingClientProps)
                 </Link>
               </div>
               <div className="divide-y divide-[#f0f0f0]">
-                {section.races.map((race, i) => (
-                  <div key={i} className="px-4 py-2 flex items-center justify-between">
-                    <div>
-                      <div className="text-[12px] font-medium text-[#333]">{race.track}</div>
-                      <div className="text-[11px] text-[#666]">{race.race}</div>
+                {section.races.length === 0 ? (
+                  <div className="px-4 py-3 text-[12px] text-[#999]">No upcoming races</div>
+                ) : (
+                  section.races.map((race, i) => (
+                    <div key={i} className="px-4 py-2 flex items-center justify-between">
+                      <div>
+                        <div className="text-[12px] font-medium text-[#333]">{race.track}</div>
+                        <div className="text-[11px] text-[#666]">{race.race}</div>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <SkyBadge />
+                        <CountdownPill startTime={race.startTime} now={now} />
+                      </div>
                     </div>
-                    <div className="flex items-center gap-2">
-                      <SkyBadge />
-                      <CountdownPill time={race.time} />
-                    </div>
-                  </div>
-                ))}
+                  ))
+                )}
               </div>
             </div>
           ))}

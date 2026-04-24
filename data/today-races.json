@@ -1,0 +1,116 @@
+{
+  "events": [
+    {
+      "id": "race-003",
+      "sport": "Horse Racing",
+      "event": "Race 3 Ascot - Class 3 1200m",
+      "teams": [
+        "Lightning Bolt",
+        "Perth Glory",
+        "Western Wind"
+      ],
+      "odds": {
+        "Lightning Bolt": 1.95,
+        "Perth Glory": 3.8,
+        "Western Wind": 4.1
+      },
+      "startTime": "2026-04-24T03:45:00.000Z",
+      "venue": "Ascot, Perth"
+    },
+    {
+      "id": "race-001",
+      "sport": "Horse Racing",
+      "event": "Race 4 Flemington - Maiden Plate 1400m",
+      "teams": [
+        "Starlight Express",
+        "Thunder Road",
+        "Coastal Storm",
+        "River King"
+      ],
+      "odds": {
+        "Starlight Express": 3.2,
+        "Thunder Road": 2.85,
+        "Coastal Storm": 4.5,
+        "River King": 5
+      },
+      "startTime": "2026-04-24T04:15:00.000Z",
+      "venue": "Flemington, Melbourne"
+    },
+    {
+      "id": "race-002",
+      "sport": "Horse Racing",
+      "event": "Race 6 Randwick - BM78 Handicap 1600m",
+      "teams": [
+        "Midnight Shadow",
+        "Ocean Fury",
+        "Golden Mile",
+        "Desert Prince"
+      ],
+      "odds": {
+        "Midnight Shadow": 2.6,
+        "Ocean Fury": 3.45,
+        "Golden Mile": 4.2,
+        "Desert Prince": 6.5
+      },
+      "startTime": "2026-04-24T05:30:00.000Z",
+      "venue": "Royal Randwick, Sydney"
+    },
+    {
+      "id": "race-004",
+      "sport": "Horse Racing",
+      "event": "Race 7 Morphettville - Group 3 2000m",
+      "teams": [
+        "Adelaide Star",
+        "Southern Cross",
+        "Hills Hero",
+        "Red Admiral"
+      ],
+      "odds": {
+        "Adelaide Star": 2.9,
+        "Southern Cross": 3.15,
+        "Hills Hero": 4.8,
+        "Red Admiral": 8
+      },
+      "startTime": "2026-04-24T06:20:00.000Z",
+      "venue": "Morphettville, Adelaide"
+    },
+    {
+      "id": "dogs-001",
+      "sport": "Greyhounds",
+      "event": "Race 5 Sandown Park - Grade 5 515m",
+      "teams": [
+        "Flying Maggie",
+        "Black Tornado",
+        "Speed Demon",
+        "Lucky Charm"
+      ],
+      "odds": {
+        "Flying Maggie": 2.4,
+        "Black Tornado": 3.6,
+        "Speed Demon": 4.8,
+        "Lucky Charm": 7.5
+      },
+      "startTime": "2026-04-24T09:42:00.000Z",
+      "venue": "Sandown Park, Melbourne"
+    },
+    {
+      "id": "dogs-002",
+      "sport": "Greyhounds",
+      "event": "Race 8 Wentworth Park - Masters 520m",
+      "teams": [
+        "Rapid Fire",
+        "Shadow Runner",
+        "Miss Swift"
+      ],
+      "odds": {
+        "Rapid Fire": 1.85,
+        "Shadow Runner": 3.25,
+        "Miss Swift": 5.5
+      },
+      "startTime": "2026-04-24T11:15:00.000Z",
+      "venue": "Wentworth Park, Sydney"
+    }
+  ],
+  "source": "mock",
+  "fetchedAt": "2026-04-24T05:24:54.090Z"
+}

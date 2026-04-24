@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import Image from "next/image";
 import Link from "next/link";
+import LiveTickerBar from "@/components/LiveTickerBar";
 import "./globals.css";
 
 export const metadata: Metadata = {
@@ -28,50 +29,6 @@ export const metadata: Metadata = {
   },
 };
 
-function TopTickerBar() {
-  const races = [
-    { type: 'horse', track: 'Flemington', race: 'R4', time: '4m 37s' },
-    { type: 'dog', track: 'Sandown', race: 'R7', time: '8m 12s' },
-    { type: 'harness', track: 'Menangle', race: 'R3', time: '12m 05s' },
-    { type: 'horse', track: 'Randwick', race: 'R6', time: '15m 44s' },
-    { type: 'dog', track: 'Wentworth Park', race: 'R2', time: '18m 30s' },
-    { type: 'horse', track: 'Caulfield', race: 'R5', time: '22m 11s' },
-    { type: 'harness', track: 'Albion Park', race: 'R1', time: '25m 58s' },
-    { type: 'dog', track: 'The Meadows', race: 'R8', time: '29m 03s' },
-    { type: 'horse', track: 'Eagle Farm', race: 'R3', time: '33m 47s' },
-    { type: 'harness', track: 'Gloucester Park', race: 'R6', time: '38m 22s' },
-  ];
-
-  const iconMap: Record<string, string> = {
-    horse: '\u{1F3C7}',
-    dog: '\u{1F415}',
-    harness: '\u{1F3CE}',
-  };
-
-  return (
-    <div className="bg-[#1a1a1a] text-white overflow-hidden" style={{ height: 32 }}>
-      <div className="flex items-center h-full">
-        <div className="shrink-0 px-3 text-[11px] font-bold text-[#f47920] uppercase tracking-wide border-r border-gray-700">
-          Next to Jump
-        </div>
-        <div className="overflow-hidden flex-1">
-          <div className="flex animate-ticker whitespace-nowrap">
-            {[...races, ...races].map((race, i) => (
-              <div key={i} className="flex items-center gap-1.5 px-4 text-[11px] shrink-0">
-                <span>{iconMap[race.type]}</span>
-                <span className="text-gray-300">{race.track}</span>
-                <span className="text-gray-500">{race.race}</span>
-                <span className="bg-[#333] text-[#f47920] px-1.5 py-0.5 rounded text-[10px] font-bold">
-                  {race.time}
-                </span>
-              </div>
-            ))}
-          </div>
-        </div>
-      </div>
-    </div>
-  );
-}
 
 function Header() {
   return (
@@ -220,7 +177,7 @@ export default function RootLayout({
   return (
     <html lang="en" className="h-full">
       <body className="min-h-full flex flex-col">
-        <TopTickerBar />
+        <LiveTickerBar />
         <Header />
         <CategoryBar />
         <main className="flex-1">{children}</main>
