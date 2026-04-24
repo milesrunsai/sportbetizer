@@ -127,9 +127,9 @@ function Header() {
 
 function CategoryBar() {
   const categories = [
-    { label: 'Horses', icon: '\u{1F3C7}', href: '/' },
-    { label: 'Greyhounds', icon: '\u{1F415}', href: '/' },
-    { label: 'Harness', icon: '\u{1F3CE}', href: '/' },
+    { label: 'Horses', icon: '\u{1F3C7}', href: '/analysis?sport=Racing' },
+    { label: 'Greyhounds', icon: '\u{1F415}', href: '/analysis?sport=Dogs' },
+    { label: 'Harness', icon: '\u{1F3CE}', href: '/analysis?sport=Racing' },
     { label: 'AI Picks', icon: '\u{1F916}', href: '/analysis' },
     { label: 'Track Record', icon: '\u{1F4CA}', href: '/results' },
     { label: 'How It Works', icon: '\u{2699}', href: '/how-it-works' },
